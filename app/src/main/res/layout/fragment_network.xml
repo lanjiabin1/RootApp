@@ -30,6 +30,7 @@
         android:layout_marginHorizontal="8dp">
 
         <TextView
+            android:textColor="@color/black"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -55,6 +56,7 @@
         android:layout_marginHorizontal="8dp">
 
         <TextView
+            android:textColor="@color/black"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -86,6 +88,7 @@
             android:layout_marginBottom="16dp">
 
             <TextView
+                android:textColor="@color/black"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -111,14 +114,16 @@
                 android:orientation="vertical" >
 
                 <TextView
+                    android:textColor="@color/black"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="热点名称"
                     android:textSize="14sp"
-                    android:textColor="#666666"
                     android:layout_marginBottom="8dp" />
 
                 <EditText
+                    android:textColor="#666666"
+                    android:textColorHint="#666666"
                     android:id="@+id/et_hotspot_ssid"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -133,11 +138,11 @@
                 android:orientation="vertical" >
 
                 <TextView
+                    android:textColor="@color/black"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="热点密码"
                     android:textSize="14sp"
-                    android:textColor="#666666"
                     android:layout_marginBottom="8dp" />
 
                 <EditText
@@ -145,6 +150,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="输入热点密码"
+                    android:textColorHint="#666666"
                     android:inputType="textPassword"
                     android:padding="12dp"
                     android:background="@android:drawable/edit_text" />
