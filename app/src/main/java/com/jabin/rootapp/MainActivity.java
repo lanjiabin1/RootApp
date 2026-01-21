@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private PowerControlFragment mPowerControlFragment;
     private SystemInfoFragment mSystemInfoFragment;
     private NetworkFragment mNetworkFragment;
+    private StatusBarControlFragment mStatusBarControlFragment;
     private AppManagerFragment mAppManagerFragment;
 
     // 底部导航栏
@@ -108,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         mPowerControlFragment = new PowerControlFragment();
         mSystemInfoFragment = new SystemInfoFragment();
         mNetworkFragment = new NetworkFragment();
+        mStatusBarControlFragment = new StatusBarControlFragment();
         mAppManagerFragment = new AppManagerFragment();
         
         // 默认显示首页Fragment
@@ -150,6 +152,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             } else if (item.getItemId() == R.id.nav_network) {
                 switchFragment(mNetworkFragment);
+                return true;
+            } else if (item.getItemId() == R.id.nav_status_bar) {
+                switchFragment(mStatusBarControlFragment);
                 return true;
             } else if (item.getItemId() == R.id.nav_app_manager) {
                 switchFragment(mAppManagerFragment);
@@ -261,10 +266,18 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("可用WiFi网络");
         
-        // 提取WiFi名称列表
+        // 提取WiFi名称列表，过滤空白项
         final List<String> wifiNames = new ArrayList<>();
         for (ScanResult result : scanResults) {
-            wifiNames.add(result.SSID);
+            // 过滤掉空白或无效的WiFi名称
+            if (result.SSID != null && !result.SSID.isEmpty()) {
+                wifiNames.add(result.SSID);
+            }
+        }
+        
+        if (wifiNames.isEmpty()) {
+            Toast.makeText(this, "未扫描到有效WiFi网络", Toast.LENGTH_SHORT).show();
+            return;
         }
         
         // 创建适配器
@@ -386,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
      * 卸载应用
      * @param packageName 应用包名
      */
-    private void uninstallApp(final String packageName) {
+    public void uninstallApp(final String packageName) {
         showConfirmDialog("确认卸载", "确定要卸载应用吗？", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {

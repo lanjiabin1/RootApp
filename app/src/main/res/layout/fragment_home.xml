@@ -12,22 +12,80 @@
         android:id="@+id/tv_welcome"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Welcome to RootApp"
+        android:text="欢迎使用RootApp"
         android:textSize="28sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="16dp"
         android:textColor="#3F51B5" />
 
     <TextView
         android:id="@+id/tv_description"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="RootApp is a powerful system management tool that provides various system-level features, including power control, system information retrieval, UI control, network management, app management, and more.\n\nTap on the bottom navigation bar to switch to different functional pages."
+        android:text="RootApp是一个功能强大的系统管理工具，提供多种系统级功能。\n\n点击底部导航栏切换到不同的功能页面。"
         android:textSize="16sp"
         android:lineSpacingExtra="4dp"
         android:gravity="center"
         android:paddingHorizontal="16dp"
         android:textColor="#666666" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginVertical="24dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="主要功能："
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:spacing="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• 电源控制（关机、重启、恢复出厂设置）"
+            android:textSize="14sp"
+            android:textColor="#666666" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• 系统信息获取"
+            android:textSize="14sp"
+            android:textColor="#666666" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• 网络管理（WiFi、蓝牙、以太网、热点）"
+            android:textSize="14sp"
+            android:textColor="#666666" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• 状态栏控制"
+            android:textSize="14sp"
+            android:textColor="#666666" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• 应用管理（安装、卸载）"
+            android:textSize="14sp"
+            android:textColor="#666666" />
+    </LinearLayout>
 
 </LinearLayout>

@@ -29,7 +29,7 @@ public class HomeFragment extends Fragment {
         
         // 设置文本内容
         tvWelcome.setText("欢迎使用RootApp");
-        tvDescription.setText("RootApp是一个功能强大的系统管理工具，提供了多种系统级功能，包括电源控制、系统信息获取、UI控制、网络管理、应用管理等。\n\n点击底部导航栏切换到不同的功能页面。");
+        tvDescription.setText("RootApp是一个功能强大的系统管理工具，提供多种系统级功能。\n\n点击底部导航栏切换到不同的功能页面。");
         
         return view;
     }

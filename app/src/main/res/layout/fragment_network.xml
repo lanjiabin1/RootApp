@@ -17,71 +17,220 @@
         android:layout_marginBottom="24dp"
         android:textColor="#3F51B5" />
 
+    <!-- WiFi控制 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp"
+        android:background="#F5F5F5"
+        android:padding="16dp"
+        android:elevation="2dp"
+        android:layout_marginHorizontal="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="WiFi"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/sw_wifi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- 蓝牙控制 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp"
+        android:background="#F5F5F5"
+        android:padding="16dp"
+        android:elevation="2dp"
+        android:layout_marginHorizontal="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="蓝牙"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/sw_bluetooth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- 热点控制 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:spacing="16dp">
+        android:background="#F5F5F5"
+        android:padding="16dp"
+        android:elevation="2dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginHorizontal="8dp">
 
-        <Button
-            android:id="@+id/btn_toggle_wifi"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="开启WiFi"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#03A9F4"
-            android:textColor="@android:color/white"
-            android:padding="12dp"
-            android:elevation="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
-        <Button
-            android:id="@+id/btn_toggle_bluetooth"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="热点"
+                android:textSize="16sp" />
+
+            <Switch
+                android:id="@+id/sw_hotspot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- 热点设置 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="开启蓝牙"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#00BCD4"
-            android:textColor="@android:color/white"
-            android:padding="12dp"
-            android:elevation="4dp" />
+            android:orientation="vertical"
+            android:spacing="16dp">
 
-        <Button
-            android:id="@+id/btn_toggle_ethernet"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="切换以太网"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#009688"
-            android:textColor="@android:color/white"
-            android:padding="12dp"
-            android:elevation="4dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
 
-        <Button
-            android:id="@+id/btn_toggle_hotspot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="开启热点"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#8BC34A"
-            android:textColor="@android:color/white"
-            android:padding="12dp"
-            android:elevation="4dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="热点名称"
+                    android:textSize="14sp"
+                    android:textColor="#666666"
+                    android:layout_marginBottom="8dp" />
 
-        <Button
-            android:id="@+id/btn_scan_wifi"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="扫描并显示WiFi列表"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#3F51B5"
-            android:textColor="@android:color/white"
-            android:padding="12dp"
-            android:elevation="4dp" />
+                <EditText
+                    android:id="@+id/et_hotspot_ssid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="输入热点名称"
+                    android:padding="12dp"
+                    android:background="@android:drawable/edit_text" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="热点密码"
+                    android:textSize="14sp"
+                    android:textColor="#666666"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/et_hotspot_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="输入热点密码"
+                    android:inputType="textPassword"
+                    android:padding="12dp"
+                    android:background="@android:drawable/edit_text" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_save_hotspot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="保存热点设置"
+                android:textSize="16sp"
+                android:textAllCaps="false"
+                android:backgroundTint="#3F51B5"
+                android:textColor="@android:color/white"
+                android:padding="12dp"
+                android:elevation="4dp" />
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- 以太网控制 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp"
+        android:background="#F5F5F5"
+        android:padding="16dp"
+        android:elevation="2dp"
+        android:layout_marginHorizontal="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="以太网"
+            android:textSize="16sp" />
+
+        <Switch
+            android:id="@+id/sw_ethernet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- 以太网设置按钮 -->
+    <Button
+        android:id="@+id/btn_ethernet_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="以太网设置"
+        android:textSize="16sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#009688"
+        android:textColor="@android:color/white"
+        android:padding="12dp"
+        android:elevation="4dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginHorizontal="8dp" />
+
+    <!-- WLAN设置按钮 -->
+    <Button
+        android:id="@+id/btn_wlan_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="WLAN设置"
+        android:textSize="16sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#03A9F4"
+        android:textColor="@android:color/white"
+        android:padding="12dp"
+        android:elevation="4dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginHorizontal="8dp" />
+
+    <!-- 扫描WiFi按钮 -->
+    <Button
+        android:id="@+id/btn_scan_wifi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="扫描并显示WiFi列表"
+        android:textSize="16sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#3F51B5"
+        android:textColor="@android:color/white"
+        android:padding="12dp"
+        android:elevation="4dp"
+        android:layout_marginHorizontal="8dp" />
 
 </LinearLayout>

@@ -17,6 +17,10 @@
         android:icon="@android:drawable/ic_menu_manage"
         android:title="网络" />
     <item
+        android:id="@+id/nav_status_bar"
+        android:icon="@android:drawable/ic_menu_view"
+        android:title="状态栏" />
+    <item
         android:id="@+id/nav_app_manager"
         android:icon="@drawable/ic_menu_settings"
         android:title="应用管理" />

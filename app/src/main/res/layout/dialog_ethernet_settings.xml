@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:spacing="16dp">
+
+    <!-- IP设置模式选择 -->
+    <RadioGroup
+        android:id="@+id/rg_ip_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <RadioButton
+            android:id="@+id/rb_dhcp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="动态IP (DHCP)"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/rb_static"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="静态IP" />
+    </RadioGroup>
+
+    <!-- 静态IP设置区域 -->
+    <LinearLayout
+        android:id="@+id/ll_static_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:spacing="16dp">
+
+        <!-- IP地址 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="IP地址"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_ip_address"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="192.168.1.100"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+        </LinearLayout>
+
+        <!-- 网关 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="网关"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_gateway"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="192.168.1.1"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+        </LinearLayout>
+
+        <!-- 子网掩码 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="子网掩码"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_netmask"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="255.255.255.0"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+        </LinearLayout>
+
+        <!-- DNS1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="首选DNS"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_dns1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="8.8.8.8"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+        </LinearLayout>
+
+        <!-- DNS2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="备用DNS"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_dns2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="8.8.4.4"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@android:drawable/edit_text" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp"
+        android:spacing="16dp">
+
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="取消"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#BDBDBD"
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="12dp" />
+
+        <Button
+            android:layout_marginLeft="10dp"
+            android:id="@+id/btn_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="保存"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#3F51B5"
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="12dp" />
+    </LinearLayout>
+
+</LinearLayout>

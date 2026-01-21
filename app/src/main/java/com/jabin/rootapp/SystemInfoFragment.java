@@ -38,6 +38,9 @@ public class SystemInfoFragment extends Fragment {
         // 设置点击事件
         btnGetSystemInfo.setOnClickListener(v -> ((MainActivity) getActivity()).getSystemInfo());
         
+        // 自动加载系统信息
+        ((MainActivity) getActivity()).getSystemInfo();
+        
         return view;
     }
     
