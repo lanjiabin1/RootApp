@@ -2,6 +2,7 @@ package com.jabin.rootapp;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,13 +24,11 @@ public class NetworkFragment extends Fragment {
     private Button btnScanWifi;
     private Button btnEthernetSettings;
     private Button btnWlanSettings;
-    private Button btnSaveHotspot;
+    private Button btnHotspotSettings;
     private Switch swWifi;
     private Switch swBluetooth;
     private Switch swEthernet;
     private Switch swHotspot;
-    private EditText etHotspotSsid;
-    private EditText etHotspotPassword;
     private NetworkManagerHelper mNetworkManager;
 
     public NetworkFragment() {
@@ -65,17 +64,13 @@ public class NetworkFragment extends Fragment {
         btnScanWifi = view.findViewById(R.id.btn_scan_wifi);
         btnEthernetSettings = view.findViewById(R.id.btn_ethernet_settings);
         btnWlanSettings = view.findViewById(R.id.btn_wlan_settings);
-        btnSaveHotspot = view.findViewById(R.id.btn_save_hotspot);
+        btnHotspotSettings = view.findViewById(R.id.btn_hotspot_settings);
         
         // 开关
         swWifi = view.findViewById(R.id.sw_wifi);
         swBluetooth = view.findViewById(R.id.sw_bluetooth);
         swEthernet = view.findViewById(R.id.sw_ethernet);
         swHotspot = view.findViewById(R.id.sw_hotspot);
-        
-        // 编辑框
-        etHotspotSsid = view.findViewById(R.id.et_hotspot_ssid);
-        etHotspotPassword = view.findViewById(R.id.et_hotspot_password);
     }
     
     /**
@@ -106,11 +101,18 @@ public class NetworkFragment extends Fragment {
         
         // 热点开关
         swHotspot.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            Log.d("NetworkFragment", "Attempting to set hotspot enabled: " + isChecked);
             boolean result = mNetworkManager.setHotspotEnabled(isChecked);
             if (result) {
                 Toast.makeText(getActivity(), "热点已" + (isChecked ? "开启" : "关闭"), Toast.LENGTH_SHORT).show();
+                Log.d("NetworkFragment", "Hotspot " + (isChecked ? "enabled" : "disabled") + " successfully");
+                // 热点开启成功后，弹出热点设置对话框
+                if (isChecked) {
+                    showHotspotSettingsDialog();
+                }
             } else {
                 Toast.makeText(getActivity(), "热点切换失败", Toast.LENGTH_SHORT).show();
+                Log.e("NetworkFragment", "Failed to " + (isChecked ? "enable" : "disable") + " hotspot");
                 swHotspot.setChecked(!isChecked); // 恢复原状
             }
         });
@@ -126,27 +128,9 @@ public class NetworkFragment extends Fragment {
             }
         });
         
-        // 保存热点设置
-        btnSaveHotspot.setOnClickListener(v -> {
-            String ssid = etHotspotSsid.getText().toString().trim();
-            String password = etHotspotPassword.getText().toString().trim();
-            
-            if (ssid.isEmpty()) {
-                Toast.makeText(getActivity(), "请输入热点名称", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            
-            if (password.isEmpty()) {
-                Toast.makeText(getActivity(), "请输入热点密码", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            
-            boolean result = mNetworkManager.setHotspotConfig(ssid, password);
-            if (result) {
-                Toast.makeText(getActivity(), "热点设置保存成功", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getActivity(), "热点设置保存失败", Toast.LENGTH_SHORT).show();
-            }
+        // 热点设置按钮
+        btnHotspotSettings.setOnClickListener(v -> {
+            showHotspotSettingsDialog();
         });
         
         // 扫描WiFi
@@ -252,6 +236,56 @@ public class NetworkFragment extends Fragment {
             }
             
             dialog.dismiss();
+        });
+        
+        dialog.show();
+    }
+    
+    /**
+     * 显示热点设置对话框
+     */
+    private void showHotspotSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle("热点设置");
+        
+        // 加载自定义布局
+        View view = LayoutInflater.from(getActivity()).inflate(R.layout.dialog_hotspot_settings, null);
+        builder.setView(view);
+        
+        // 初始化UI组件
+        EditText etHotspotSsid = view.findViewById(R.id.et_hotspot_ssid);
+        EditText etHotspotPassword = view.findViewById(R.id.et_hotspot_password);
+        Button btnCancel = view.findViewById(R.id.btn_cancel);
+        Button btnSave = view.findViewById(R.id.btn_save);
+        
+        // 创建并显示对话框
+        AlertDialog dialog = builder.create();
+        
+        // 设置取消按钮点击事件
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        
+        // 设置保存按钮点击事件
+        btnSave.setOnClickListener(v -> {
+            String ssid = etHotspotSsid.getText().toString().trim();
+            String password = etHotspotPassword.getText().toString().trim();
+            
+            if (ssid.isEmpty()) {
+                Toast.makeText(getActivity(), "请输入热点名称", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            if (password.isEmpty() || password.length() < 8) {
+                Toast.makeText(getActivity(), "密码长度不能少于8位", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            boolean result = mNetworkManager.setHotspotConfig(ssid, password);
+            if (result) {
+                Toast.makeText(getActivity(), "热点设置保存成功", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            } else {
+                Toast.makeText(getActivity(), "热点设置保存失败", Toast.LENGTH_SHORT).show();
+            }
         });
         
         dialog.show();

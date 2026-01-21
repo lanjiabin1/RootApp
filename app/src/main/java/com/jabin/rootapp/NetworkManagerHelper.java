@@ -147,16 +147,33 @@ public class NetworkManagerHelper {
      */
     public boolean setHotspotEnabled(boolean enabled) {
         try {
-            // 通过反射调用WifiManager的setWifiApEnabled方法
+            Log.d(TAG, "setHotspotEnabled called with enabled: " + enabled);
+            
+            // 先检查WiFi状态，开启热点前需要关闭WiFi
+            if (enabled && mWifiManager.isWifiEnabled()) {
+                Log.d(TAG, "Turning off WiFi before enabling hotspot");
+                mWifiManager.setWifiEnabled(false);
+                // 等待WiFi关闭
+                Thread.sleep(1000);
+            }
+            
+            // 通过反射获取当前热点配置
             Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
+            Log.d(TAG, "Calling getWifiApConfiguration");
             Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
+            Log.d(TAG, "Got wifi config: " + wifiConfig);
 
+            // 通过反射调用setWifiApEnabled方法
             Method setWifiApEnabledMethod = mWifiManager.getClass().getMethod("setWifiApEnabled",
                     WifiConfiguration.class, boolean.class);
-            return (boolean) setWifiApEnabledMethod.invoke(mWifiManager, wifiConfig, enabled);
+            Log.d(TAG, "Calling setWifiApEnabled with config: " + wifiConfig + ", enabled: " + enabled);
+            boolean result = (boolean) setWifiApEnabledMethod.invoke(mWifiManager, wifiConfig, enabled);
+            Log.d(TAG, "setWifiApEnabled returned: " + result);
+            
+            return result;
         } catch (Exception e) {
+            Log.e(TAG, "Failed to set hotspot enabled: " + e.getMessage(), e);
             e.printStackTrace();
-            Log.e(TAG, "Failed to set hotspot enabled: " + e.getMessage());
             return false;
         }
     }

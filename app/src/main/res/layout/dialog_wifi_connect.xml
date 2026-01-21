@@ -6,6 +6,7 @@
     android:padding="16dp">
 
     <TextView
+        android:textColor="@color/black"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="请输入WiFi密码"
@@ -13,6 +14,8 @@
         android:layout_marginBottom="16dp" />
 
     <EditText
+        android:textColorHint="@color/black"
+        android:textColor="@color/black"
         android:id="@+id/et_password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

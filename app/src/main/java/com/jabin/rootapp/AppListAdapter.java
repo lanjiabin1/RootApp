@@ -5,6 +5,7 @@ import android.content.pm.PackageInfo;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,15 +23,21 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.AppViewH
     private Context mContext;
     private List<AppInfo> mAppList;
     private OnAppItemClickListener mListener;
+    private OnUninstallClickListener mUninstallListener;
 
     public interface OnAppItemClickListener {
         void onAppItemClick(AppInfo appInfo);
     }
+    
+    public interface OnUninstallClickListener {
+        void onUninstallClick(AppInfo appInfo);
+    }
 
-    public AppListAdapter(Context context, List<AppInfo> appList, OnAppItemClickListener listener) {
+    public AppListAdapter(Context context, List<AppInfo> appList, OnAppItemClickListener listener, OnUninstallClickListener uninstallListener) {
         this.mContext = context;
         this.mAppList = appList;
         this.mListener = listener;
+        this.mUninstallListener = uninstallListener;
     }
 
     @NonNull
@@ -59,6 +66,13 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.AppViewH
                 mListener.onAppItemClick(appInfo);
             }
         });
+        
+        // 设置卸载按钮点击事件
+        holder.btnUninstall.setOnClickListener(v -> {
+            if (mUninstallListener != null) {
+                mUninstallListener.onUninstallClick(appInfo);
+            }
+        });
     }
 
     @Override
@@ -82,12 +96,14 @@ public class AppListAdapter extends RecyclerView.Adapter<AppListAdapter.AppViewH
         ImageView ivAppIcon;
         TextView tvAppName;
         TextView tvAppPackage;
+        Button btnUninstall;
 
         public AppViewHolder(@NonNull View itemView) {
             super(itemView);
             ivAppIcon = itemView.findViewById(R.id.iv_app_icon);
             tvAppName = itemView.findViewById(R.id.tv_app_name);
             tvAppPackage = itemView.findViewById(R.id.tv_app_package);
+            btnUninstall = itemView.findViewById(R.id.btn_uninstall);
         }
     }
 }

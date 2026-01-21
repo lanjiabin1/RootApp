@@ -19,6 +19,8 @@
 
     <!-- 应用名称 -->
     <TextView
+        android:text="App Name"
+        android:textColor="@color/black"
         android:id="@+id/tv_app_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -35,6 +37,19 @@
         android:textColor="#666666"
         android:ellipsize="end"
         android:maxLines="1"
-        android:maxWidth="150dp" />
+        android:maxWidth="150dp"
+        android:layout_marginRight="16dp" />
+
+    <!-- 卸载按钮 -->
+    <Button
+        android:id="@+id/btn_uninstall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="卸载"
+        android:textSize="14sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#F44336"
+        android:textColor="@android:color/white"
+        android:elevation="2dp" />
 
 </LinearLayout>

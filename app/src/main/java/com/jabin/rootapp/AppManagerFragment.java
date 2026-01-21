@@ -78,6 +78,11 @@ public class AppManagerFragment extends Fragment {
             public void onAppItemClick(AppInfo appInfo) {
                 showAppDetails(appInfo);
             }
+        }, new AppListAdapter.OnUninstallClickListener() {
+            @Override
+            public void onUninstallClick(AppInfo appInfo) {
+                silentUninstallApp(appInfo);
+            }
         });
         rvAppList.setAdapter(mAppListAdapter);
     }
@@ -135,6 +140,28 @@ public class AppManagerFragment extends Fragment {
     }
     
     /**
+     * 静默卸载应用
+     * @param appInfo 应用信息
+     */
+    private void silentUninstallApp(AppInfo appInfo) {
+        try {
+            AppManagerHelper appManagerHelper = new AppManagerHelper(getActivity());
+            boolean result = appManagerHelper.silentUninstall(appInfo.getPackageName());
+            if (result) {
+                Toast.makeText(getActivity(), "卸载成功", Toast.LENGTH_SHORT).show();
+                // 刷新应用列表
+                loadUninstallableApps();
+            } else {
+                Toast.makeText(getActivity(), "卸载失败", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e(TAG, "Failed to uninstall app: " + e.getMessage());
+            Toast.makeText(getActivity(), "卸载失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    /**
      * 显示应用详情
      * @param appInfo 应用信息
      */
@@ -164,9 +191,7 @@ public class AppManagerFragment extends Fragment {
         
         // 设置卸载按钮点击事件
         btnUninstall.setOnClickListener(v -> {
-            ((MainActivity) getActivity()).uninstallApp(appInfo.getPackageName());
-            // 刷新应用列表
-            loadUninstallableApps();
+            silentUninstallApp(appInfo);
         });
         
         builder.setView(view);

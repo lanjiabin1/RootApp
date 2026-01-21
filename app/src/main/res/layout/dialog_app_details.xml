@@ -30,6 +30,7 @@
             android:spacing="8dp">
 
             <TextView
+                android:textColor="@color/black"
                 android:id="@+id/tv_app_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -38,20 +39,21 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:textColor="@color/black"
+                android:textColorHint="@color/black"
                 android:id="@+id/tv_app_package"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="com.example.app"
-                android:textSize="14sp"
-                android:textColor="#666666" />
+                android:textSize="14sp" />
 
             <TextView
+                android:textColor="@color/black"
                 android:id="@+id/tv_app_version"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="版本：1.0.0"
-                android:textSize="14sp"
-                android:textColor="#666666" />
+                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -68,14 +70,15 @@
             android:orientation="vertical" >
 
             <TextView
+                android:textColor="@color/black"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="安装时间"
                 android:textSize="14sp"
-                android:textColor="#666666"
                 android:layout_marginBottom="4dp" />
 
             <TextView
+                android:textColor="@color/black"
                 android:id="@+id/tv_app_install_time"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -93,10 +96,11 @@
                 android:layout_height="wrap_content"
                 android:text="更新时间"
                 android:textSize="14sp"
-                android:textColor="#666666"
+                android:textColor="@color/black"
                 android:layout_marginBottom="4dp" />
 
             <TextView
+                android:textColor="@color/black"
                 android:id="@+id/tv_app_update_time"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:spacing="16dp">
+
+    <!-- 热点名称 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" >
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="热点名称"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:textColorHint="@color/black"
+            android:textColor="@color/black"
+            android:id="@+id/et_hotspot_ssid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="RootApp_Hotspot"
+            android:padding="12dp"
+            android:background="@android:drawable/edit_text"
+            android:text="RootApp_Hotspot" />
+    </LinearLayout>
+
+    <!-- 热点密码 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" >
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="热点密码"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:textColorHint="@color/black"
+            android:textColor="@color/black"
+            android:id="@+id/et_hotspot_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="输入热点密码"
+            android:inputType="textPassword"
+            android:padding="12dp"
+            android:background="@android:drawable/edit_text"
+            android:text="12345678" />
+    </LinearLayout>
+
+    <!-- 按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp"
+        android:spacing="16dp">
+
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="取消"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#BDBDBD"
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="12dp" />
+
+        <Button
+            android:layout_marginLeft="10dp"
+            android:id="@+id/btn_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="保存"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#3F51B5"
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="12dp" />
+    </LinearLayout>
+
+</LinearLayout>

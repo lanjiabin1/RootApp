@@ -53,6 +53,8 @@
                 android:layout_marginBottom="8dp" />
 
             <EditText
+                android:textColor="@color/black"
+                android:textColorHint="@color/black"
                 android:id="@+id/et_ip_address"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -77,6 +79,8 @@
                 android:layout_marginBottom="8dp" />
 
             <EditText
+                android:textColor="@color/black"
+                android:textColorHint="@color/black"
                 android:id="@+id/et_gateway"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -101,6 +105,8 @@
                 android:layout_marginBottom="8dp" />
 
             <EditText
+                android:textColor="@color/black"
+                android:textColorHint="@color/black"
                 android:id="@+id/et_netmask"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -125,6 +131,8 @@
                 android:layout_marginBottom="8dp" />
 
             <EditText
+                android:textColor="@color/black"
+                android:textColorHint="@color/black"
                 android:id="@+id/et_dns1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -149,6 +157,8 @@
                 android:layout_marginBottom="8dp" />
 
             <EditText
+                android:textColor="@color/black"
+                android:textColorHint="@color/black"
                 android:id="@+id/et_dns2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
