@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    tools:context=".HomeFragment">
+
+    <TextView
+        android:id="@+id/tv_welcome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Welcome to RootApp"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        android:textColor="#3F51B5" />
+
+    <TextView
+        android:id="@+id/tv_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="RootApp is a powerful system management tool that provides various system-level features, including power control, system information retrieval, UI control, network management, app management, and more.\n\nTap on the bottom navigation bar to switch to different functional pages."
+        android:textSize="16sp"
+        android:lineSpacingExtra="4dp"
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:textColor="#666666" />
+
+</LinearLayout>
