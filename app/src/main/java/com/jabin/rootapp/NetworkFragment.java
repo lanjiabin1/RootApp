@@ -157,6 +157,13 @@ public class NetworkFragment extends Fragment {
         // 以太网状态需要额外实现获取方法
     }
     
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 进入页面时刷新开关状态
+        updateSwitchStates();
+    }
+    
     /**
      * 显示以太网设置对话框
      */

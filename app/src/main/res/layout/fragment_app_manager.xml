@@ -16,27 +16,50 @@
         android:gravity="center"
         android:layout_marginBottom="24dp"
         android:textColor="#3F51B5" />
-
     <Button
+        android:layout_gravity="center_horizontal"
         android:id="@+id/btn_silent_install"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="静默安装应用"
         android:textSize="16sp"
         android:textAllCaps="false"
         android:backgroundTint="#4CAF50"
-        android:textColor="@android:color/white"
-        android:padding="12dp"
-        android:elevation="4dp"
-        android:layout_marginBottom="16dp" />
+        android:textColor="@android:color/white" />
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="可卸载应用列表"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"
+        android:spacing="16dp">
+        <TextView
+            android:background="@android:color/holo_green_light"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="可卸载应用列表"
+            android:textStyle="bold"
+            android:layout_weight="1"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:padding="12dp" />
+
+        <Button
+            android:layout_marginLeft="10dp"
+            android:id="@+id/btn_refresh_apps"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="刷新列表"
+            android:layout_weight="1"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#2196F3"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:elevation="4dp" />
+    </LinearLayout>
 
     <!-- 应用列表 -->
     <androidx.recyclerview.widget.RecyclerView

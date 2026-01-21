@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.NetworkRequest;
+import android.net.wifi.SoftApConfiguration;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -16,7 +17,9 @@ import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -147,35 +150,99 @@ public class NetworkManagerHelper {
      */
     public boolean setHotspotEnabled(boolean enabled) {
         try {
-            Log.d(TAG, "setHotspotEnabled called with enabled: " + enabled);
+            Log.d(TAG, "=== setHotspotEnabled called with enabled: " + enabled + " ===");
             
             // 先检查WiFi状态，开启热点前需要关闭WiFi
             if (enabled && mWifiManager.isWifiEnabled()) {
                 Log.d(TAG, "Turning off WiFi before enabling hotspot");
-                mWifiManager.setWifiEnabled(false);
+                boolean wifiDisabled = mWifiManager.setWifiEnabled(false);
+                Log.d(TAG, "Wifi disabled result: " + wifiDisabled);
                 // 等待WiFi关闭
                 Thread.sleep(1000);
             }
             
-            // 通过反射获取当前热点配置
-            Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
-            Log.d(TAG, "Calling getWifiApConfiguration");
-            Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
-            Log.d(TAG, "Got wifi config: " + wifiConfig);
-
-            // 通过反射调用setWifiApEnabled方法
-            Method setWifiApEnabledMethod = mWifiManager.getClass().getMethod("setWifiApEnabled",
-                    WifiConfiguration.class, boolean.class);
-            Log.d(TAG, "Calling setWifiApEnabled with config: " + wifiConfig + ", enabled: " + enabled);
-            boolean result = (boolean) setWifiApEnabledMethod.invoke(mWifiManager, wifiConfig, enabled);
-            Log.d(TAG, "setWifiApEnabled returned: " + result);
-            
-            return result;
+            // 根据Android版本使用不同的API
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.d(TAG, "Using Android O+ API (SoftApConfiguration)");
+                return setHotspotEnabledOreo(enabled);
+            } else {
+                Log.d(TAG, "Using legacy API");
+                return setHotspotEnabledLegacy(enabled);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to set hotspot enabled: " + e.getMessage(), e);
-            e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * Android 8.0及以上版本启用/禁用热点
+     */
+    private boolean setHotspotEnabledOreo(boolean enabled) throws Exception {
+        Log.d(TAG, "setHotspotEnabledOreo called with enabled: " + enabled);
+        
+        // 获取SoftApConfiguration
+        Method getSoftApConfigurationMethod = mWifiManager.getClass().getMethod("getSoftApConfiguration");
+        SoftApConfiguration config = (SoftApConfiguration) getSoftApConfigurationMethod.invoke(mWifiManager);
+        Log.d(TAG, "Current SoftApConfiguration: " + config);
+        
+        if (enabled) {
+            Log.d(TAG, "Starting soft AP with config: " + config);
+            
+            // 使用反射获取SoftApCallback类
+            Class<?> softApCallbackClass = Class.forName("android.net.wifi.WifiManager$SoftApCallback");
+            
+            // 调用startSoftAp方法
+            Method startSoftApMethod = mWifiManager.getClass().getMethod("startSoftAp", 
+                    SoftApConfiguration.class, softApCallbackClass);
+            
+            // 创建简单的callback实例（使用反射）
+            Object callback = Proxy.newProxyInstance(
+                    softApCallbackClass.getClassLoader(),
+                    new Class<?>[]{softApCallbackClass},
+                    new InvocationHandler() {
+                        @Override
+                        public Object invoke(Object proxy, Method method, Object[] args) {
+                            if (method.getName().equals("onStateChanged")) {
+                                int state = (int) args[0];
+                                int failureReason = (int) args[1];
+                                Log.d(TAG, "Soft AP state changed: " + state + ", failureReason: " + failureReason);
+                            }
+                            return null;
+                        }
+                    });
+            
+            // 调用startSoftAp
+            startSoftApMethod.invoke(mWifiManager, config, callback);
+            Log.d(TAG, "startSoftAp called successfully");
+            return true;
+        } else {
+            Log.d(TAG, "Stopping soft AP");
+            Method stopSoftApMethod = mWifiManager.getClass().getMethod("stopSoftAp");
+            stopSoftApMethod.invoke(mWifiManager);
+            Log.d(TAG, "stopSoftAp called successfully");
+            return true;
+        }
+    }
+
+    /**
+     * Android 8.0以下版本启用/禁用热点
+     */
+    private boolean setHotspotEnabledLegacy(boolean enabled) throws Exception {
+        Log.d(TAG, "setHotspotEnabledLegacy called with enabled: " + enabled);
+        
+        // 通过反射获取当前热点配置
+        Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
+        Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
+        Log.d(TAG, "Got legacy wifi config: " + wifiConfig);
+
+        // 通过反射调用setWifiApEnabled方法
+        Method setWifiApEnabledMethod = mWifiManager.getClass().getMethod("setWifiApEnabled",
+                Class.forName("android.net.wifi.WifiConfiguration"), boolean.class);
+        boolean result = (boolean) setWifiApEnabledMethod.invoke(mWifiManager, wifiConfig, enabled);
+        Log.d(TAG, "setWifiApEnabled returned: " + result);
+        
+        return result;
     }
 
     /**
@@ -186,29 +253,122 @@ public class NetworkManagerHelper {
      */
     public boolean setHotspotConfig(String ssid, String password) {
         try {
-            // 创建热点配置
-            WifiConfiguration wifiConfig = new WifiConfiguration();
-            wifiConfig.SSID = ssid;
-            wifiConfig.preSharedKey = password;
-            wifiConfig.hiddenSSID = false;
-            wifiConfig.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
-            wifiConfig.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-            wifiConfig.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
-            wifiConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-            wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
-            wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
-            wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-            wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-
-            // 通过反射设置热点配置
-            Method setWifiApConfigurationMethod = mWifiManager.getClass().getMethod("setWifiApConfiguration",
-                    WifiConfiguration.class);
-            return (boolean) setWifiApConfigurationMethod.invoke(mWifiManager, wifiConfig);
+            Log.d(TAG, "=== setHotspotConfig called with ssid: " + ssid + ", password: " + password + " ===");
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.d(TAG, "Using Android O+ API for hotspot config");
+                return setHotspotConfigOreo(ssid, password);
+            } else {
+                Log.d(TAG, "Using legacy API for hotspot config");
+                return setHotspotConfigLegacy(ssid, password);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
-            Log.e(TAG, "Failed to set hotspot config: " + e.getMessage());
+            Log.e(TAG, "Failed to set hotspot config: " + e.getMessage(), e);
             return false;
         }
+    }
+
+    /**
+     * Android 8.0及以上版本设置热点信息
+     */
+    private boolean setHotspotConfigOreo(String ssid, String password) throws Exception {
+        Log.d(TAG, "setHotspotConfigOreo called with ssid: " + ssid + ", password: " + password);
+        
+        // 使用反射创建SoftApConfiguration
+        SoftApConfiguration config = createSoftApConfiguration(ssid, password);
+        Log.d(TAG, "Created SoftApConfiguration: " + config);
+        
+        // 调用setSoftApConfiguration方法
+        Method setSoftApConfigurationMethod = mWifiManager.getClass().getMethod("setSoftApConfiguration", SoftApConfiguration.class);
+        boolean result = (boolean) setSoftApConfigurationMethod.invoke(mWifiManager, config);
+        Log.d(TAG, "setSoftApConfiguration result: " + result);
+        
+        return result;
+    }
+    
+    /**
+     * 使用反射创建SoftApConfiguration
+     */
+    private SoftApConfiguration createSoftApConfiguration(String ssid, String password) throws Exception {
+        Log.d(TAG, "createSoftApConfiguration called with ssid: " + ssid + ", password: " + password);
+        
+        // 使用反射创建SoftApConfiguration.Builder
+        Class<?> builderClass = Class.forName("android.net.wifi.SoftApConfiguration$Builder");
+        Object builder = builderClass.getConstructor().newInstance();
+        
+        // 反射调用setSsid方法
+        Method setSsidMethod = builderClass.getMethod("setSsid", String.class);
+        setSsidMethod.invoke(builder, ssid);
+        Log.d(TAG, "Set SSID to: " + ssid);
+        
+        // 反射调用setPassphrase方法
+        Method setPassphraseMethod = builderClass.getMethod("setPassphrase", String.class, int.class);
+        // 获取SECURITY_TYPE_WPA2_PSK常量
+        int securityTypeWpa2Psk = (int) SoftApConfiguration.class.getField("SECURITY_TYPE_WPA2_PSK").get(null);
+        setPassphraseMethod.invoke(builder, password, securityTypeWpa2Psk);
+        Log.d(TAG, "Set passphrase and security type to WPA2_PSK");
+        
+        // 反射调用build方法
+        Method buildMethod = builderClass.getMethod("build");
+        return (SoftApConfiguration) buildMethod.invoke(builder);
+    }
+
+    /**
+     * Android 8.0以下版本设置热点信息
+     */
+    private boolean setHotspotConfigLegacy(String ssid, String password) throws Exception {
+        Log.d(TAG, "setHotspotConfigLegacy called with ssid: " + ssid + ", password: " + password);
+        
+        // 获取WifiConfiguration类
+        Class<?> wifiConfigClass = Class.forName("android.net.wifi.WifiConfiguration");
+        Object wifiConfig = wifiConfigClass.newInstance();
+        
+        // 设置基本属性
+        wifiConfigClass.getField("SSID").set(wifiConfig, ssid);
+        wifiConfigClass.getField("preSharedKey").set(wifiConfig, password);
+        wifiConfigClass.getField("hiddenSSID").set(wifiConfig, false);
+        
+        // 设置安全配置
+        // 获取AuthAlgorithm枚举
+        Class<?> authAlgorithmClass = Class.forName("android.net.wifi.WifiConfiguration$AuthAlgorithm");
+        Object authOpen = authAlgorithmClass.getField("OPEN").get(null);
+        wifiConfigClass.getMethod("setAllowedAuthAlgorithms", int.class).invoke(wifiConfig, 1 << (int) authAlgorithmClass.getMethod("ordinal").invoke(authOpen));
+        
+        // 设置协议
+        Class<?> protocolClass = Class.forName("android.net.wifi.WifiConfiguration$Protocol");
+        Object protocolRSN = protocolClass.getField("RSN").get(null);
+        Object protocolWPA = protocolClass.getField("WPA").get(null);
+        wifiConfigClass.getMethod("setAllowedProtocols", int.class).invoke(wifiConfig, 
+                (1 << (int) protocolClass.getMethod("ordinal").invoke(protocolRSN)) | 
+                (1 << (int) protocolClass.getMethod("ordinal").invoke(protocolWPA)));
+        
+        // 设置密钥管理
+        Class<?> keyMgmtClass = Class.forName("android.net.wifi.WifiConfiguration$KeyMgmt");
+        Object keyMgmtWPA_PSK = keyMgmtClass.getField("WPA_PSK").get(null);
+        wifiConfigClass.getMethod("setAllowedKeyManagement", int.class).invoke(wifiConfig, 
+                1 << (int) keyMgmtClass.getMethod("ordinal").invoke(keyMgmtWPA_PSK));
+        
+        // 设置加密方式
+        Class<?> pairwiseCipherClass = Class.forName("android.net.wifi.WifiConfiguration$PairwiseCipher");
+        Object pairwiseCCMP = pairwiseCipherClass.getField("CCMP").get(null);
+        Object pairwiseTKIP = pairwiseCipherClass.getField("TKIP").get(null);
+        wifiConfigClass.getMethod("setAllowedPairwiseCiphers", int.class).invoke(wifiConfig, 
+                (1 << (int) pairwiseCipherClass.getMethod("ordinal").invoke(pairwiseCCMP)) | 
+                (1 << (int) pairwiseCipherClass.getMethod("ordinal").invoke(pairwiseTKIP)));
+        
+        Class<?> groupCipherClass = Class.forName("android.net.wifi.WifiConfiguration$GroupCipher");
+        Object groupCCMP = groupCipherClass.getField("CCMP").get(null);
+        Object groupTKIP = groupCipherClass.getField("TKIP").get(null);
+        wifiConfigClass.getMethod("setAllowedGroupCiphers", int.class).invoke(wifiConfig, 
+                (1 << (int) groupCipherClass.getMethod("ordinal").invoke(groupCCMP)) | 
+                (1 << (int) groupCipherClass.getMethod("ordinal").invoke(groupTKIP)));
+        
+        // 通过反射设置热点配置
+        Method setWifiApConfigurationMethod = mWifiManager.getClass().getMethod("setWifiApConfiguration", wifiConfigClass);
+        boolean result = (boolean) setWifiApConfigurationMethod.invoke(mWifiManager, wifiConfig);
+        Log.d(TAG, "setWifiApConfiguration result: " + result);
+        
+        return result;
     }
 
     /**
@@ -242,16 +402,81 @@ public class NetworkManagerHelper {
      */
     public boolean setEthernetDhcp() {
         try {
-            if (mEthernetManager != null && mEthernetManagerClass != null) {
-                // 通过反射设置DHCP
-                // 这里需要根据实际的EthernetManager实现来调整
-                Log.d(TAG, "Setting Ethernet DHCP is not fully implemented");
+            Log.d(TAG, "setEthernetDhcp called");
+            
+            if (mEthernetManager == null || mEthernetManagerClass == null) {
+                Log.e(TAG, "EthernetManager is null");
                 return false;
             }
+            
+            Log.d(TAG, "EthernetManager: " + mEthernetManager + ", Class: " + mEthernetManagerClass);
+            
+            // 尝试通过反射获取所有方法，查看可用方法
+            Method[] methods = mEthernetManagerClass.getMethods();
+            Log.d(TAG, "EthernetManager methods:");
+            for (Method method : methods) {
+                Log.d(TAG, "  " + method.getName());
+            }
+            
+            // 尝试设置DHCP
+            try {
+                // 方法1: 尝试使用setConfiguration方法设置DHCP
+                Method getIpConfigurationMethod = mEthernetManagerClass.getMethod("getIpConfiguration");
+                Object ipConfig = getIpConfigurationMethod.invoke(mEthernetManager);
+                Log.d(TAG, "Got IP configuration: " + ipConfig);
+                
+                // 尝试设置IP配置类型为DHCP
+                Class<?> ipConfigClass = ipConfig.getClass();
+                Method setIpAssignmentMethod = ipConfigClass.getMethod("setIpAssignment", Object.class);
+                // 获取IpAssignment枚举类型并设置DHCP
+                Class<?> ipAssignmentClass = Class.forName("android.net.IpConfiguration$IpAssignment");
+                // 使用反射获取DHCP枚举值
+                Method valueOfMethod = ipAssignmentClass.getMethod("valueOf", String.class);
+                Object dhcpValue = valueOfMethod.invoke(null, "DHCP");
+                setIpAssignmentMethod.invoke(ipConfig, dhcpValue);
+                
+                // 设置代理类型为NONE
+                Method setProxySettingsMethod = ipConfigClass.getMethod("setProxySettings", Object.class);
+                Class<?> proxySettingsClass = Class.forName("android.net.IpConfiguration$ProxySettings");
+                // 使用反射获取NONE枚举值
+                Method proxyValueOfMethod = proxySettingsClass.getMethod("valueOf", String.class);
+                Object noneValue = proxyValueOfMethod.invoke(null, "NONE");
+                setProxySettingsMethod.invoke(ipConfig, noneValue);
+                
+                // 保存IP配置
+                Method setConfigurationMethod = mEthernetManagerClass.getMethod("setConfiguration", ipConfigClass);
+                boolean result = (boolean) setConfigurationMethod.invoke(mEthernetManager, ipConfig);
+                Log.d(TAG, "setConfiguration result: " + result);
+                return result;
+            } catch (Exception e) {
+                Log.e(TAG, "Method 1 failed: " + e.getMessage());
+                
+                // 方法2: 尝试使用setDhcpMethod方法（如果存在）
+                try {
+                    Method setDhcpMethod = mEthernetManagerClass.getMethod("setDhcp");
+                    boolean result = (boolean) setDhcpMethod.invoke(mEthernetManager);
+                    Log.d(TAG, "setDhcp result: " + result);
+                    return result;
+                } catch (Exception e2) {
+                    Log.e(TAG, "Method 2 failed: " + e2.getMessage());
+                    
+                    // 方法3: 尝试重置以太网配置
+                    try {
+                        Method resetConfigurationMethod = mEthernetManagerClass.getMethod("resetConfiguration");
+                        boolean result = (boolean) resetConfigurationMethod.invoke(mEthernetManager);
+                        Log.d(TAG, "resetConfiguration result: " + result);
+                        return result;
+                    } catch (Exception e3) {
+                        Log.e(TAG, "Method 3 failed: " + e3.getMessage());
+                    }
+                }
+            }
+            
+            Log.e(TAG, "Failed to set Ethernet DHCP using all available methods");
             return false;
         } catch (Exception e) {
+            Log.e(TAG, "Failed to set Ethernet DHCP: " + e.getMessage(), e);
             e.printStackTrace();
-            Log.e(TAG, "Failed to set Ethernet DHCP: " + e.getMessage());
             return false;
         }
     }

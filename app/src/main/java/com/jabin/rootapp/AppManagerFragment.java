@@ -33,6 +33,7 @@ public class AppManagerFragment extends Fragment {
 
     private static final String TAG = "AppManagerFragment";
     private Button btnSilentInstall;
+    private Button btnRefreshApps;
     private RecyclerView rvAppList;
     private AppListAdapter mAppListAdapter;
     private List<AppInfo> mAppList;
@@ -68,6 +69,7 @@ public class AppManagerFragment extends Fragment {
      */
     private void initViews(View view) {
         btnSilentInstall = view.findViewById(R.id.btn_silent_install);
+        btnRefreshApps = view.findViewById(R.id.btn_refresh_apps);
         rvAppList = view.findViewById(R.id.rv_app_list);
         
         // 配置RecyclerView
@@ -100,6 +102,16 @@ public class AppManagerFragment extends Fragment {
     private void setListeners() {
         // 静默安装应用
         btnSilentInstall.setOnClickListener(v -> ((MainActivity) getActivity()).selectApkFile());
+        
+        // 刷新应用列表
+        btnRefreshApps.setOnClickListener(v -> loadUninstallableApps());
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 进入fragment时自动刷新应用列表
+        loadUninstallableApps();
     }
     
     /**
