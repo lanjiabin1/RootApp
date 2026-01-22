@@ -841,7 +841,27 @@ public class NetworkManagerHelper {
                                 
                                 // 保存配置
                                 Method setConfigurationMethod = mEthernetManagerClass.getMethod("setConfiguration", String.class, ipConfigClass);
-                                boolean setResult = (boolean) setConfigurationMethod.invoke(mEthernetManager, iface, config);
+                                Object result = setConfigurationMethod.invoke(mEthernetManager, iface, config);
+                                
+                                // 处理invoke返回值，避免null转换为boolean导致的空指针异常
+                                boolean setResult = false;
+                                if (result != null) {
+                                    if (result instanceof Boolean) {
+                                        setResult = (Boolean) result;
+                                    } else if (result instanceof String) {
+                                        // 有些设备可能返回字符串表示结果
+                                        setResult = "success".equalsIgnoreCase((String) result);
+                                    } else {
+                                        // 默认认为操作成功
+                                        setResult = true;
+                                        Log.w(TAG, "setConfiguration returned non-boolean result: " + result + ", assuming success");
+                                    }
+                                } else {
+                                    // 有些设备可能返回null表示成功
+                                    setResult = true;
+                                    Log.w(TAG, "setConfiguration returned null, assuming success");
+                                }
+                                
                                 Log.d(TAG, "setConfiguration for " + iface + " result: " + setResult);
                                 
                                 if (setResult) {
