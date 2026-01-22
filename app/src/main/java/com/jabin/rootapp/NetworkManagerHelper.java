@@ -189,6 +189,9 @@ public class NetworkManagerHelper {
             Method[] methods = mWifiManager.getClass().getMethods();
             Log.d(TAG, "Searching for startSoftAp method...");
             
+            // 优先尝试使用SoftApConfiguration相关的方法，特别是在Android 12+上
+            boolean foundSoftApConfigMethod = false;
+            
             for (Method method : methods) {
                 String methodName = method.getName();
                 if (methodName.equals("startSoftAp")) {
@@ -200,9 +203,11 @@ public class NetworkManagerHelper {
                     }
                     
                     try {
-                        // 根据参数类型调用不同的方法
-                        if (parameterTypes.length == 1) {
-                            if (parameterTypes[0] == SoftApConfiguration.class) {
+                        // 优先使用SoftApConfiguration相关的方法
+                        if (parameterTypes[0] == SoftApConfiguration.class) {
+                            foundSoftApConfigMethod = true;
+                            
+                            if (parameterTypes.length == 1) {
                                 // 方法签名: startSoftAp(SoftApConfiguration)
                                 Log.d(TAG, "Calling startSoftAp with SoftApConfiguration");
                                 Method getSoftApConfigurationMethod = mWifiManager.getClass().getMethod("getSoftApConfiguration");
@@ -210,18 +215,7 @@ public class NetworkManagerHelper {
                                 method.invoke(mWifiManager, config);
                                 Log.d(TAG, "startSoftAp called successfully");
                                 return true;
-                            } else if (parameterTypes[0].getName().equals("android.net.wifi.WifiConfiguration")) {
-                                // 方法签名: startSoftAp(WifiConfiguration)
-                                Log.d(TAG, "Calling startSoftAp with WifiConfiguration");
-                                // 获取WifiConfiguration
-                                Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
-                                Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
-                                method.invoke(mWifiManager, wifiConfig);
-                                Log.d(TAG, "startSoftAp called successfully");
-                                return true;
-                            }
-                        } else if (parameterTypes.length == 2) {
-                            if (parameterTypes[0] == SoftApConfiguration.class) {
+                            } else if (parameterTypes.length == 2) {
                                 if (parameterTypes[1].isInterface()) {
                                     // 方法签名: startSoftAp(SoftApConfiguration, SoftApCallback)
                                     Log.d(TAG, "Calling startSoftAp with SoftApConfiguration and callback");
@@ -254,7 +248,34 @@ public class NetworkManagerHelper {
                                     Log.d(TAG, "startSoftAp called successfully");
                                     return true;
                                 }
-                            } else if (parameterTypes[0].getName().equals("android.net.wifi.WifiConfiguration")) {
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to call startSoftAp with SoftApConfiguration: " + e.getMessage());
+                        // 继续尝试其他方法
+                        continue;
+                    }
+                }
+            }
+            
+            // 如果没有找到SoftApConfiguration相关的方法，或者调用失败，再尝试使用WifiConfiguration相关的方法
+            if (!foundSoftApConfigMethod) {
+                for (Method method : methods) {
+                    String methodName = method.getName();
+                    if (methodName.equals("startSoftAp")) {
+                        Class<?>[] parameterTypes = method.getParameterTypes();
+                        
+                        try {
+                            if (parameterTypes[0].getName().equals("android.net.wifi.WifiConfiguration")) {
+                                // 方法签名: startSoftAp(WifiConfiguration)
+                                Log.d(TAG, "Calling startSoftAp with WifiConfiguration");
+                                // 获取WifiConfiguration
+                                Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
+                                Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
+                                method.invoke(mWifiManager, wifiConfig);
+                                Log.d(TAG, "startSoftAp called successfully");
+                                return true;
+                            } else if (parameterTypes.length == 2 && parameterTypes[0].getName().equals("android.net.wifi.WifiConfiguration")) {
                                 // 方法签名: startSoftAp(WifiConfiguration, int) 或 startSoftAp(WifiConfiguration, callback)
                                 Log.d(TAG, "Calling startSoftAp with WifiConfiguration and second parameter");
                                 Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
@@ -282,11 +303,11 @@ public class NetworkManagerHelper {
                                 Log.d(TAG, "startSoftAp called successfully");
                                 return true;
                             }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to call startSoftAp with WifiConfiguration: " + e.getMessage());
+                            // 继续尝试其他方法
+                            continue;
                         }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Failed to call startSoftAp: " + e.getMessage());
-                        // 继续尝试其他方法
-                        continue;
                     }
                 }
             }
@@ -413,9 +434,34 @@ public class NetworkManagerHelper {
         setPassphraseMethod.invoke(builder, password, securityTypeWpa2Psk);
         Log.d(TAG, "Set passphrase and security type to WPA2_PSK");
         
+        // 设置热点可见性（确保其他设备可以搜索到）
+        try {
+            Method setHiddenSsidMethod = builderClass.getMethod("setHiddenSsid", boolean.class);
+            setHiddenSsidMethod.invoke(builder, false);
+            Log.d(TAG, "Set hiddenSSID to: false");
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to set hiddenSSID: " + e.getMessage());
+        }
+        
+        // 设置热点频段为2.4GHz（兼容性更好）
+        try {
+            Method setBandMethod = builderClass.getMethod("setBand", int.class);
+            // 获取BAND_2GHZ常量
+            int band2Ghz = (int) SoftApConfiguration.class.getField("BAND_2GHZ").get(null);
+            setBandMethod.invoke(builder, band2Ghz);
+            Log.d(TAG, "Set band to: 2.4GHz");
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to set band: " + e.getMessage());
+        }
+        
         // 反射调用build方法
         Method buildMethod = builderClass.getMethod("build");
-        return (SoftApConfiguration) buildMethod.invoke(builder);
+        SoftApConfiguration config = (SoftApConfiguration) buildMethod.invoke(builder);
+        
+        // 打印配置的详细信息
+        Log.d(TAG, "Final SoftApConfiguration: " + config.toString());
+        
+        return config;
     }
 
     /**
