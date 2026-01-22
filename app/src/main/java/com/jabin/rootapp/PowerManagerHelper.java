@@ -58,11 +58,85 @@ public class PowerManagerHelper {
      */
     public boolean factoryReset() {
         try {
-            // 通过反射调用PowerManager的wipeData方法
-            Method wipeDataMethod = mPowerManager.getClass().getMethod("wipeData",
-                    int.class);
-            wipeDataMethod.invoke(mPowerManager, 0); // 0表示恢复出厂设置，不保留数据
-            return true;
+            // 尝试多种恢复出厂设置的方法
+            
+            // 方法1: 尝试使用wipeData方法（不同参数签名）
+            try {
+                // 尝试无参数的wipeData方法
+                Method wipeDataMethod = mPowerManager.getClass().getMethod("wipeData");
+                wipeDataMethod.invoke(mPowerManager);
+                return true;
+            } catch (NoSuchMethodException e1) {
+                // 方法2: 尝试使用其他参数的wipeData方法
+                try {
+                    // 尝试使用不同参数类型的wipeData方法
+                    Method[] methods = mPowerManager.getClass().getMethods();
+                    for (Method method : methods) {
+                        if (method.getName().equals("wipeData")) {
+                            // 找到wipeData方法，不管参数，尝试调用
+                            Class<?>[] paramTypes = method.getParameterTypes();
+                            if (paramTypes.length == 0) {
+                                method.invoke(mPowerManager);
+                                return true;
+                            } else if (paramTypes.length == 1) {
+                                // 根据参数类型选择合适的默认值
+                                if (paramTypes[0] == int.class || paramTypes[0] == Integer.class) {
+                                    method.invoke(mPowerManager, 0);
+                                } else if (paramTypes[0] == boolean.class || paramTypes[0] == Boolean.class) {
+                                    method.invoke(mPowerManager, false);
+                                } else {
+                                    // 其他参数类型，尝试传入null
+                                    method.invoke(mPowerManager, new Object[] { null });
+                                }
+                                return true;
+                            }
+                        }
+                    }
+                } catch (Exception e2) {
+                    // 方法3: 尝试使用SystemProperties方法（Android 8.0+）
+                    try {
+                        Class<?> systemPropertiesClass = Class.forName("android.os.SystemProperties");
+                        Method setMethod = systemPropertiesClass.getMethod("set", String.class, String.class);
+                        setMethod.invoke(null, "persist.sys.factory_reset", "1");
+                        
+                        // 重启设备
+                        reboot();
+                        return true;
+                    } catch (Exception e3) {
+                        // 方法4: 尝试使用DevicePolicyManager方式
+                        try {
+                            Class<?> devicePolicyManagerClass = Class.forName("android.app.admin.DevicePolicyManager");
+                            Object dpm = mContext.getSystemService(Context.DEVICE_POLICY_SERVICE);
+                            if (dpm != null) {
+                                // 尝试调用wipeData方法
+                                Method wipeDataMethod = devicePolicyManagerClass.getMethod("wipeData", int.class);
+                                // 获取wipeData的标志常量
+                                int WIPE_EXTERNAL_STORAGE = 0;
+                                try {
+                                    WIPE_EXTERNAL_STORAGE = (int) devicePolicyManagerClass.getField("WIPE_EXTERNAL_STORAGE").get(null);
+                                } catch (Exception e) {
+                                    // 忽略，使用默认值0
+                                }
+                                wipeDataMethod.invoke(dpm, WIPE_EXTERNAL_STORAGE);
+                                return true;
+                            }
+                        } catch (Exception e4) {
+                            e4.printStackTrace();
+                        }
+                        
+                        // 方法5: 尝试使用RecoverySystem方式
+                        try {
+                            Class<?> recoverySystemClass = Class.forName("android.os.RecoverySystem");
+                            Method rebootWipeDataMethod = recoverySystemClass.getMethod("rebootWipeData", Context.class);
+                            rebootWipeDataMethod.invoke(null, mContext);
+                            return true;
+                        } catch (Exception e5) {
+                            e5.printStackTrace();
+                        }
+                    }
+                }
+            }
+            return false;
         } catch (Exception e) {
             e.printStackTrace();
             return false;

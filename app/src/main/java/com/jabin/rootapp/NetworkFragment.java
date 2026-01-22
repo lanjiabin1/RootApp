@@ -188,6 +188,13 @@ public class NetworkFragment extends Fragment {
         Button btnCancel = view.findViewById(R.id.btn_cancel);
         Button btnSave = view.findViewById(R.id.btn_save);
         
+        // 为静态IP输入框设置默认值
+        etIpAddress.setText("192.168.1.100");
+        etGateway.setText("192.168.1.1");
+        etNetmask.setText("255.255.255.0");
+        etDns1.setText("8.8.8.8");
+        etDns2.setText("8.8.4.4");
+        
         // 默认禁用静态IP设置区域
         llStaticSettings.setVisibility(View.GONE);
         

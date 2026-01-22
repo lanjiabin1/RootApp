@@ -68,6 +68,7 @@ public class StatusBarControlFragment extends Fragment {
      */
     private void setStatusBarSwipeAllowed(boolean allowed) {
         mUIControlHelper.setStatusBarSwipeAllowed(allowed);
-        Toast.makeText(getActivity(), "状态栏滑动已" + (allowed ? "允许" : "禁止"), Toast.LENGTH_SHORT).show();
+        String behavior = mUIControlHelper.getCurrentSystemBarsBehavior();
+        Toast.makeText(getActivity(), "状态栏滑动已" + (allowed ? "允许" : "禁止") + ", 当前行为: " + behavior, Toast.LENGTH_SHORT).show();
     }
 }

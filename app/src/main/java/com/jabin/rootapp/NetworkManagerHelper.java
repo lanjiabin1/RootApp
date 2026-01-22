@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.NetworkRequest;
 import android.net.wifi.SoftApConfiguration;
@@ -181,47 +182,133 @@ public class NetworkManagerHelper {
     private boolean setHotspotEnabledOreo(boolean enabled) throws Exception {
         Log.d(TAG, "setHotspotEnabledOreo called with enabled: " + enabled);
         
-        // 获取SoftApConfiguration
-        Method getSoftApConfigurationMethod = mWifiManager.getClass().getMethod("getSoftApConfiguration");
-        SoftApConfiguration config = (SoftApConfiguration) getSoftApConfigurationMethod.invoke(mWifiManager);
-        Log.d(TAG, "Current SoftApConfiguration: " + config);
-        
         if (enabled) {
-            Log.d(TAG, "Starting soft AP with config: " + config);
+            Log.d(TAG, "Starting soft AP...");
             
-            // 使用反射获取SoftApCallback类
-            Class<?> softApCallbackClass = Class.forName("android.net.wifi.WifiManager$SoftApCallback");
+            // 查找并调用正确的startSoftAp方法
+            Method[] methods = mWifiManager.getClass().getMethods();
+            Log.d(TAG, "Searching for startSoftAp method...");
             
-            // 调用startSoftAp方法
-            Method startSoftApMethod = mWifiManager.getClass().getMethod("startSoftAp", 
-                    SoftApConfiguration.class, softApCallbackClass);
-            
-            // 创建简单的callback实例（使用反射）
-            Object callback = Proxy.newProxyInstance(
-                    softApCallbackClass.getClassLoader(),
-                    new Class<?>[]{softApCallbackClass},
-                    new InvocationHandler() {
-                        @Override
-                        public Object invoke(Object proxy, Method method, Object[] args) {
-                            if (method.getName().equals("onStateChanged")) {
-                                int state = (int) args[0];
-                                int failureReason = (int) args[1];
-                                Log.d(TAG, "Soft AP state changed: " + state + ", failureReason: " + failureReason);
+            for (Method method : methods) {
+                String methodName = method.getName();
+                if (methodName.equals("startSoftAp")) {
+                    Log.d(TAG, "Found method: " + method.getName());
+                    Class<?>[] parameterTypes = method.getParameterTypes();
+                    Log.d(TAG, "  Parameter types: ");
+                    for (Class<?> paramType : parameterTypes) {
+                        Log.d(TAG, "    - " + paramType.getName());
+                    }
+                    
+                    try {
+                        // 根据参数类型调用不同的方法
+                        if (parameterTypes.length == 1) {
+                            if (parameterTypes[0] == SoftApConfiguration.class) {
+                                // 方法签名: startSoftAp(SoftApConfiguration)
+                                Log.d(TAG, "Calling startSoftAp with SoftApConfiguration");
+                                Method getSoftApConfigurationMethod = mWifiManager.getClass().getMethod("getSoftApConfiguration");
+                                SoftApConfiguration config = (SoftApConfiguration) getSoftApConfigurationMethod.invoke(mWifiManager);
+                                method.invoke(mWifiManager, config);
+                                Log.d(TAG, "startSoftAp called successfully");
+                                return true;
+                            } else if (parameterTypes[0].getName().equals("android.net.wifi.WifiConfiguration")) {
+                                // 方法签名: startSoftAp(WifiConfiguration)
+                                Log.d(TAG, "Calling startSoftAp with WifiConfiguration");
+                                // 获取WifiConfiguration
+                                Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
+                                Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
+                                method.invoke(mWifiManager, wifiConfig);
+                                Log.d(TAG, "startSoftAp called successfully");
+                                return true;
                             }
-                            return null;
+                        } else if (parameterTypes.length == 2) {
+                            if (parameterTypes[0] == SoftApConfiguration.class) {
+                                if (parameterTypes[1].isInterface()) {
+                                    // 方法签名: startSoftAp(SoftApConfiguration, SoftApCallback)
+                                    Log.d(TAG, "Calling startSoftAp with SoftApConfiguration and callback");
+                                    Method getSoftApConfigurationMethod = mWifiManager.getClass().getMethod("getSoftApConfiguration");
+                                    SoftApConfiguration config = (SoftApConfiguration) getSoftApConfigurationMethod.invoke(mWifiManager);
+                                    // 创建SoftApCallback代理
+                                    Object callback = Proxy.newProxyInstance(
+                                            parameterTypes[1].getClassLoader(),
+                                            new Class<?>[]{parameterTypes[1]},
+                                            new InvocationHandler() {
+                                                @Override
+                                                public Object invoke(Object proxy, Method cbMethod, Object[] args) {
+                                                    if (cbMethod.getName().equals("onStateChanged")) {
+                                                        int state = (int) args[0];
+                                                        int failureReason = (int) args[1];
+                                                        Log.d(TAG, "Soft AP state changed: " + state + ", failureReason: " + failureReason);
+                                                    }
+                                                    return null;
+                                                }
+                                            });
+                                    method.invoke(mWifiManager, config, callback);
+                                    Log.d(TAG, "startSoftAp called successfully");
+                                    return true;
+                                } else if (parameterTypes[1] == int.class) {
+                                    // 方法签名: startSoftAp(SoftApConfiguration, int)
+                                    Log.d(TAG, "Calling startSoftAp with SoftApConfiguration and int");
+                                    Method getSoftApConfigurationMethod = mWifiManager.getClass().getMethod("getSoftApConfiguration");
+                                    SoftApConfiguration config = (SoftApConfiguration) getSoftApConfigurationMethod.invoke(mWifiManager);
+                                    method.invoke(mWifiManager, config, 0);
+                                    Log.d(TAG, "startSoftAp called successfully");
+                                    return true;
+                                }
+                            } else if (parameterTypes[0].getName().equals("android.net.wifi.WifiConfiguration")) {
+                                // 方法签名: startSoftAp(WifiConfiguration, int) 或 startSoftAp(WifiConfiguration, callback)
+                                Log.d(TAG, "Calling startSoftAp with WifiConfiguration and second parameter");
+                                Method getWifiApConfigurationMethod = mWifiManager.getClass().getMethod("getWifiApConfiguration");
+                                Object wifiConfig = getWifiApConfigurationMethod.invoke(mWifiManager);
+                                
+                                if (parameterTypes[1].isInterface()) {
+                                    // 创建代理回调
+                                    Object callback = Proxy.newProxyInstance(
+                                            parameterTypes[1].getClassLoader(),
+                                            new Class<?>[]{parameterTypes[1]},
+                                            new InvocationHandler() {
+                                                @Override
+                                                public Object invoke(Object proxy, Method cbMethod, Object[] args) {
+                                                    Log.d(TAG, "Soft AP callback invoked: " + cbMethod.getName());
+                                                    return null;
+                                                }
+                                            });
+                                    method.invoke(mWifiManager, wifiConfig, callback);
+                                } else if (parameterTypes[1] == int.class) {
+                                    method.invoke(mWifiManager, wifiConfig, 0);
+                                } else {
+                                    // 尝试传递null作为第二个参数
+                                    method.invoke(mWifiManager, wifiConfig, null);
+                                }
+                                Log.d(TAG, "startSoftAp called successfully");
+                                return true;
+                            }
                         }
-                    });
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to call startSoftAp: " + e.getMessage());
+                        // 继续尝试其他方法
+                        continue;
+                    }
+                }
+            }
             
-            // 调用startSoftAp
-            startSoftApMethod.invoke(mWifiManager, config, callback);
-            Log.d(TAG, "startSoftAp called successfully");
-            return true;
+            Log.e(TAG, "No suitable startSoftAp method found");
+            return false;
         } else {
             Log.d(TAG, "Stopping soft AP");
-            Method stopSoftApMethod = mWifiManager.getClass().getMethod("stopSoftAp");
-            stopSoftApMethod.invoke(mWifiManager);
-            Log.d(TAG, "stopSoftAp called successfully");
-            return true;
+            
+            // 查找并调用stopSoftAp方法
+            Method[] methods = mWifiManager.getClass().getMethods();
+            for (Method method : methods) {
+                if (method.getName().equals("stopSoftAp")) {
+                    Log.d(TAG, "Found stopSoftAp method");
+                    method.invoke(mWifiManager);
+                    Log.d(TAG, "stopSoftAp called successfully");
+                    return true;
+                }
+            }
+            
+            Log.e(TAG, "No stopSoftAp method found");
+            return false;
         }
     }
 
@@ -382,16 +469,241 @@ public class NetworkManagerHelper {
      */
     public boolean setEthernetStaticIp(String ipAddress, String gateway, String netmask, String dns1, String dns2) {
         try {
-            if (mEthernetManager != null && mEthernetManagerClass != null) {
-                // 通过反射设置静态IP
-                // 这里需要根据实际的EthernetManager实现来调整
-                Log.d(TAG, "Setting Ethernet static IP is not fully implemented");
+            Log.d(TAG, "setEthernetStaticIp called with ip: " + ipAddress + ", gateway: " + gateway + ", netmask: " + netmask + ", dns1: " + dns1 + ", dns2: " + dns2);
+            
+            if (mEthernetManager == null || mEthernetManagerClass == null) {
+                Log.e(TAG, "EthernetManager is null");
                 return false;
             }
+            
+            Log.d(TAG, "EthernetManager: " + mEthernetManager + ", Class: " + mEthernetManagerClass);
+            
+            // 获取可用的以太网接口列表
+            List<String> interfaces = new ArrayList<>();
+            try {
+                // 尝试获取接口列表
+                Method getInterfaceListMethod = mEthernetManagerClass.getMethod("getInterfaceList");
+                Object result = getInterfaceListMethod.invoke(mEthernetManager);
+                if (result instanceof List) {
+                    interfaces = (List<String>) result;
+                    Log.d(TAG, "Available interfaces: " + interfaces);
+                } else {
+                    Log.d(TAG, "getInterfaceList returned: " + result);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to get interface list: " + e.getMessage());
+                // 如果获取接口列表失败，默认使用eth0
+                interfaces.add("eth0");
+            }
+            
+            // 如果没有可用接口，添加默认eth0
+            if (interfaces.isEmpty()) {
+                interfaces.add("eth0");
+                Log.d(TAG, "Added default interface eth0");
+            }
+            
+            // 尝试设置静态IP配置
+            for (String iface : interfaces) {
+                Log.d(TAG, "Processing interface: " + iface);
+                
+                try {
+                    // 获取当前配置
+                    Method getConfigurationMethod = mEthernetManagerClass.getMethod("getConfiguration", String.class);
+                    Object config = getConfigurationMethod.invoke(mEthernetManager, iface);
+                    Log.d(TAG, "Got configuration for " + iface + ": " + config);
+                    
+                    if (config != null) {
+                        // 直接使用配置对象，日志显示它已经是IpConfiguration类型
+                        Class<?> ipConfigClass = config.getClass();
+                        Log.d(TAG, "Configuration class: " + ipConfigClass.getName());
+                        
+                        // 设置IP分配方式为STATIC
+                        try {
+                            // 动态查找setIpAssignment方法并获取正确的参数类型
+                            Method setIpAssignmentMethod = null;
+                            Class<?> correctParamType = null;
+                            
+                            // 遍历所有方法，找到setIpAssignment方法
+                            for (Method method : ipConfigClass.getMethods()) {
+                                if (method.getName().equals("setIpAssignment")) {
+                                    Class<?>[] params = method.getParameterTypes();
+                                    if (params.length == 1) {
+                                        setIpAssignmentMethod = method;
+                                        correctParamType = params[0];
+                                        Log.d(TAG, "Found setIpAssignment method with param type: " + correctParamType.getName());
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (setIpAssignmentMethod != null && correctParamType != null) {
+                                // 获取IpAssignment枚举类型和STATIC值
+                                Class<?> ipAssignmentClass = correctParamType;
+                                Object staticValue;
+                                
+                                try {
+                                    // 尝试直接获取STATIC枚举值
+                                    staticValue = ipAssignmentClass.getField("STATIC").get(null);
+                                    Log.d(TAG, "Got STATIC value: " + staticValue);
+                                } catch (Exception e) {
+                                    // 尝试通过valueOf方法获取
+                                    Method valueOfMethod = ipAssignmentClass.getMethod("valueOf", String.class);
+                                    staticValue = valueOfMethod.invoke(null, "STATIC");
+                                    Log.d(TAG, "Got STATIC value via valueOf: " + staticValue);
+                                }
+                                
+                                // 调用setIpAssignment方法，设置为STATIC
+                                setIpAssignmentMethod.invoke(config, staticValue);
+                                Log.d(TAG, "Set IpAssignment to STATIC");
+                                
+                                // 设置静态IP地址信息
+                                // 首先查找setStaticIpConfiguration方法
+                                Method setStaticIpConfigurationMethod = null;
+                                for (Method method : ipConfigClass.getMethods()) {
+                                    if (method.getName().equals("setStaticIpConfiguration")) {
+                                        setStaticIpConfigurationMethod = method;
+                                        break;
+                                    }
+                                }
+                                
+                                if (setStaticIpConfigurationMethod != null) {
+                                    // 获取StaticIpConfiguration类
+                                    Class<?> staticIpConfigClass = Class.forName("android.net.StaticIpConfiguration");
+                                    Object staticIpConfig = staticIpConfigClass.newInstance();
+                                    
+                                    // 设置IP地址
+                                    InetAddress ipAddr = InetAddress.getByName(ipAddress);
+                                    InetAddress gatewayAddr = InetAddress.getByName(gateway);
+                                    InetAddress dns1Addr = dns1.isEmpty() ? null : InetAddress.getByName(dns1);
+                                    InetAddress dns2Addr = dns2.isEmpty() ? null : InetAddress.getByName(dns2);
+                                    
+                                    // 设置IP地址和前缀长度
+                                    int prefixLength = 24; // 默认子网掩码255.255.255.0对应的前缀长度
+                                    try {
+                                        // 从子网掩码计算前缀长度
+                                        String[] maskParts = netmask.split("\\.");
+                                        if (maskParts.length == 4) {
+                                            int mask = 0;
+                                            for (String part : maskParts) {
+                                                mask = (mask << 8) | Integer.parseInt(part);
+                                            }
+                                            prefixLength = 32 - Integer.numberOfTrailingZeros(mask);
+                                        }
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "Failed to calculate prefix length, using default 24: " + e.getMessage());
+                                    }
+                                    
+                                    // 设置StaticIpConfiguration
+                                    java.lang.reflect.Field linkPropertiesField = staticIpConfigClass.getDeclaredField("ipAddress");
+                                    linkPropertiesField.setAccessible(true);
+                                    
+                                    // 使用反射创建和配置LinkAddress对象
+                                    try {
+                                        // 获取LinkAddress类
+                                        Class<?> linkAddressClass = Class.forName("android.net.LinkAddress");
+                                        
+                                        // 尝试查找合适的构造器
+                                        java.lang.reflect.Constructor<?> constructor = null;
+                                        Object linkAddress = null;
+                                        
+                                        // 尝试使用有参构造器
+                                        try {
+                                            // 尝试使用InetAddress和int参数的构造器
+                                            constructor = linkAddressClass.getDeclaredConstructor(InetAddress.class, int.class);
+                                            constructor.setAccessible(true);
+                                            linkAddress = constructor.newInstance(ipAddr, prefixLength);
+                                            Log.d(TAG, "Successfully created LinkAddress with InetAddress and int constructor");
+                                        } catch (NoSuchMethodException e) {
+                                            Log.e(TAG, "No InetAddress and int constructor found: " + e.getMessage());
+                                            
+                                            // 尝试使用String和int参数的构造器
+                                            try {
+                                                constructor = linkAddressClass.getDeclaredConstructor(String.class, int.class);
+                                                constructor.setAccessible(true);
+                                                linkAddress = constructor.newInstance(ipAddress, prefixLength);
+                                                Log.d(TAG, "Successfully created LinkAddress with String and int constructor");
+                                            } catch (NoSuchMethodException e2) {
+                                                Log.e(TAG, "No String and int constructor found: " + e2.getMessage());
+                                                
+                                                // 尝试使用单个String参数的构造器
+                                                try {
+                                                    constructor = linkAddressClass.getDeclaredConstructor(String.class);
+                                                    constructor.setAccessible(true);
+                                                    // 格式: "ip/prefix" 例如: "192.168.1.100/24"
+                                                    String ipWithPrefix = ipAddress + "/" + prefixLength;
+                                                    linkAddress = constructor.newInstance(ipWithPrefix);
+                                                    Log.d(TAG, "Successfully created LinkAddress with String constructor: " + ipWithPrefix);
+                                                } catch (NoSuchMethodException e3) {
+                                                    Log.e(TAG, "No suitable constructor found for LinkAddress: " + e3.getMessage());
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (linkAddress != null) {
+                                            // 将创建好的LinkAddress对象设置到静态IP配置中
+                                            linkPropertiesField.set(staticIpConfig, linkAddress);
+                                            Log.d(TAG, "Successfully set LinkAddress to static IP configuration");
+                                        } else {
+                                            // 如果无法创建LinkAddress对象，尝试设置为null
+                                            linkPropertiesField.set(staticIpConfig, null);
+                                            Log.d(TAG, "Set LinkAddress to null due to creation failure");
+                                        }
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "Failed to handle LinkAddress via reflection: " + e.getMessage());
+                                        // 如果反射失败，尝试其他方法
+                                        // 直接使用null或其他默认值
+                                        linkPropertiesField.set(staticIpConfig, null);
+                                    }
+                                    
+                                    java.lang.reflect.Field gatewayField = staticIpConfigClass.getDeclaredField("gateway");
+                                    gatewayField.setAccessible(true);
+                                    gatewayField.set(staticIpConfig, gatewayAddr);
+                                    
+                                    java.lang.reflect.Field dnsServersField = staticIpConfigClass.getDeclaredField("dnsServers");
+                                    dnsServersField.setAccessible(true);
+                                    ArrayList<InetAddress> dnsList = new ArrayList<>();
+                                    if (dns1Addr != null) dnsList.add(dns1Addr);
+                                    if (dns2Addr != null) dnsList.add(dns2Addr);
+                                    dnsServersField.set(staticIpConfig, dnsList);
+                                    
+                                    // 设置域名服务器搜索路径（可选）
+                                    try {
+                                        java.lang.reflect.Field domainsField = staticIpConfigClass.getDeclaredField("domains");
+                                        domainsField.setAccessible(true);
+                                        domainsField.set(staticIpConfig, "");
+                                    } catch (Exception e) {
+                                        // 忽略，该字段可能不存在
+                                    }
+                                    
+                                    // 调用setStaticIpConfiguration方法
+                                    setStaticIpConfigurationMethod.invoke(config, staticIpConfig);
+                                    Log.d(TAG, "Set StaticIpConfiguration: " + staticIpConfig);
+                                }
+                                
+                                // 保存配置
+                                Method setConfigurationMethod = mEthernetManagerClass.getMethod("setConfiguration", String.class, ipConfigClass);
+                                boolean setResult = (boolean) setConfigurationMethod.invoke(mEthernetManager, iface, config);
+                                Log.d(TAG, "setConfiguration for " + iface + " result: " + setResult);
+                                
+                                if (setResult) {
+                                    return true;
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to update IP configuration: " + e.getMessage(), e);
+                            // 尝试其他方法
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to process interface " + iface + ": " + e.getMessage());
+                    // 继续尝试下一个接口
+                }
+            }
+            
+            Log.e(TAG, "Failed to set Ethernet static IP using all available methods");
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
-            Log.e(TAG, "Failed to set Ethernet static IP: " + e.getMessage());
+            Log.e(TAG, "Failed to set Ethernet static IP: " + e.getMessage(), e);
             return false;
         }
     }
@@ -411,64 +723,101 @@ public class NetworkManagerHelper {
             
             Log.d(TAG, "EthernetManager: " + mEthernetManager + ", Class: " + mEthernetManagerClass);
             
-            // 尝试通过反射获取所有方法，查看可用方法
-            Method[] methods = mEthernetManagerClass.getMethods();
-            Log.d(TAG, "EthernetManager methods:");
-            for (Method method : methods) {
-                Log.d(TAG, "  " + method.getName());
+            // 获取可用的以太网接口列表
+            List<String> interfaces = new ArrayList<>();
+            try {
+                // 尝试获取接口列表
+                Method getInterfaceListMethod = mEthernetManagerClass.getMethod("getInterfaceList");
+                Object result = getInterfaceListMethod.invoke(mEthernetManager);
+                if (result instanceof List) {
+                    interfaces = (List<String>) result;
+                    Log.d(TAG, "Available interfaces: " + interfaces);
+                } else {
+                    Log.d(TAG, "getInterfaceList returned: " + result);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to get interface list: " + e.getMessage());
+                // 如果获取接口列表失败，默认使用eth0
+                interfaces.add("eth0");
             }
             
-            // 尝试设置DHCP
-            try {
-                // 方法1: 尝试使用setConfiguration方法设置DHCP
-                Method getIpConfigurationMethod = mEthernetManagerClass.getMethod("getIpConfiguration");
-                Object ipConfig = getIpConfigurationMethod.invoke(mEthernetManager);
-                Log.d(TAG, "Got IP configuration: " + ipConfig);
+            // 如果没有可用接口，添加默认eth0
+            if (interfaces.isEmpty()) {
+                interfaces.add("eth0");
+                Log.d(TAG, "Added default interface eth0");
+            }
+            
+            // 尝试设置DHCP配置
+            for (String iface : interfaces) {
+                Log.d(TAG, "Processing interface: " + iface);
                 
-                // 尝试设置IP配置类型为DHCP
-                Class<?> ipConfigClass = ipConfig.getClass();
-                Method setIpAssignmentMethod = ipConfigClass.getMethod("setIpAssignment", Object.class);
-                // 获取IpAssignment枚举类型并设置DHCP
-                Class<?> ipAssignmentClass = Class.forName("android.net.IpConfiguration$IpAssignment");
-                // 使用反射获取DHCP枚举值
-                Method valueOfMethod = ipAssignmentClass.getMethod("valueOf", String.class);
-                Object dhcpValue = valueOfMethod.invoke(null, "DHCP");
-                setIpAssignmentMethod.invoke(ipConfig, dhcpValue);
-                
-                // 设置代理类型为NONE
-                Method setProxySettingsMethod = ipConfigClass.getMethod("setProxySettings", Object.class);
-                Class<?> proxySettingsClass = Class.forName("android.net.IpConfiguration$ProxySettings");
-                // 使用反射获取NONE枚举值
-                Method proxyValueOfMethod = proxySettingsClass.getMethod("valueOf", String.class);
-                Object noneValue = proxyValueOfMethod.invoke(null, "NONE");
-                setProxySettingsMethod.invoke(ipConfig, noneValue);
-                
-                // 保存IP配置
-                Method setConfigurationMethod = mEthernetManagerClass.getMethod("setConfiguration", ipConfigClass);
-                boolean result = (boolean) setConfigurationMethod.invoke(mEthernetManager, ipConfig);
-                Log.d(TAG, "setConfiguration result: " + result);
-                return result;
-            } catch (Exception e) {
-                Log.e(TAG, "Method 1 failed: " + e.getMessage());
-                
-                // 方法2: 尝试使用setDhcpMethod方法（如果存在）
                 try {
-                    Method setDhcpMethod = mEthernetManagerClass.getMethod("setDhcp");
-                    boolean result = (boolean) setDhcpMethod.invoke(mEthernetManager);
-                    Log.d(TAG, "setDhcp result: " + result);
-                    return result;
-                } catch (Exception e2) {
-                    Log.e(TAG, "Method 2 failed: " + e2.getMessage());
+                    // 获取当前配置
+                    Method getConfigurationMethod = mEthernetManagerClass.getMethod("getConfiguration", String.class);
+                    Object config = getConfigurationMethod.invoke(mEthernetManager, iface);
+                    Log.d(TAG, "Got configuration for " + iface + ": " + config);
                     
-                    // 方法3: 尝试重置以太网配置
-                    try {
-                        Method resetConfigurationMethod = mEthernetManagerClass.getMethod("resetConfiguration");
-                        boolean result = (boolean) resetConfigurationMethod.invoke(mEthernetManager);
-                        Log.d(TAG, "resetConfiguration result: " + result);
-                        return result;
-                    } catch (Exception e3) {
-                        Log.e(TAG, "Method 3 failed: " + e3.getMessage());
+                    if (config != null) {
+                        // 直接使用配置对象，日志显示它已经是IpConfiguration类型
+                        Class<?> ipConfigClass = config.getClass();
+                        Log.d(TAG, "Configuration class: " + ipConfigClass.getName());
+                        
+                        // 设置IP分配方式为DHCP
+                        try {
+                            // 动态查找setIpAssignment方法并获取正确的参数类型
+                            Method setIpAssignmentMethod = null;
+                            Class<?> correctParamType = null;
+                            
+                            // 遍历所有方法，找到setIpAssignment方法
+                            for (Method method : ipConfigClass.getMethods()) {
+                                if (method.getName().equals("setIpAssignment")) {
+                                    Class<?>[] params = method.getParameterTypes();
+                                    if (params.length == 1) {
+                                        setIpAssignmentMethod = method;
+                                        correctParamType = params[0];
+                                        Log.d(TAG, "Found setIpAssignment method with param type: " + correctParamType.getName());
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (setIpAssignmentMethod != null && correctParamType != null) {
+                                // 获取IpAssignment枚举类型和DHCP值
+                                Class<?> ipAssignmentClass = correctParamType;
+                                Object dhcpValue;
+                                
+                                try {
+                                    // 尝试直接获取DHCP枚举值
+                                    dhcpValue = ipAssignmentClass.getField("DHCP").get(null);
+                                    Log.d(TAG, "Got DHCP value: " + dhcpValue);
+                                } catch (Exception e) {
+                                    // 尝试通过valueOf方法获取
+                                    Method valueOfMethod = ipAssignmentClass.getMethod("valueOf", String.class);
+                                    dhcpValue = valueOfMethod.invoke(null, "DHCP");
+                                    Log.d(TAG, "Got DHCP value via valueOf: " + dhcpValue);
+                                }
+                                
+                                // 调用setIpAssignment方法，使用正确的参数类型
+                                setIpAssignmentMethod.invoke(config, dhcpValue);
+                                Log.d(TAG, "Set IpAssignment to DHCP");
+                                
+                                // 保存配置
+                                Method setConfigurationMethod = mEthernetManagerClass.getMethod("setConfiguration", String.class, ipConfigClass);
+                                boolean setResult = (boolean) setConfigurationMethod.invoke(mEthernetManager, iface, config);
+                                Log.d(TAG, "setConfiguration for " + iface + " result: " + setResult);
+                                
+                                if (setResult) {
+                                    return true;
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to update IP configuration: " + e.getMessage(), e);
+                            // 尝试其他方法
+                        }
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to process interface " + iface + ": " + e.getMessage());
+                    // 继续尝试下一个接口
                 }
             }
             
@@ -476,7 +825,6 @@ public class NetworkManagerHelper {
             return false;
         } catch (Exception e) {
             Log.e(TAG, "Failed to set Ethernet DHCP: " + e.getMessage(), e);
-            e.printStackTrace();
             return false;
         }
     }
