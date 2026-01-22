@@ -4,62 +4,73 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:background="#F5F5F5"
     tools:context=".AppManagerFragment">
 
+    <!-- 顶部标题 -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="应用管理"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="24dp"
-        android:textColor="#3F51B5" />
-    <Button
-        android:layout_gravity="center_horizontal"
-        android:id="@+id/btn_silent_install"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="静默安装应用"
-        android:textSize="16sp"
-        android:textAllCaps="false"
-        android:backgroundTint="#4CAF50"
-        android:textColor="@android:color/white" />
+        android:textColor="#333333"
+        android:padding="16dp"
+        android:background="#FFFFFF"
+        android:elevation="2dp" />
 
+    <!-- 控制区域 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="16dp"
-        android:spacing="16dp">
-        <TextView
-            android:background="@android:color/holo_green_light"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="可卸载应用列表"
-            android:textStyle="bold"
-            android:layout_weight="1"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:padding="12dp" />
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:layout_marginTop="8dp"
+        android:elevation="2dp"
+        android:gravity="center_vertical">
 
+        <!-- 静默安装应用按钮 -->
         <Button
-            android:layout_marginLeft="10dp"
+            android:id="@+id/btn_silent_install"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="静默安装"
+            android:textSize="14sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#4CAF50"
+            android:textColor="@android:color/white"
+            android:layout_marginRight="8dp"
+            android:elevation="1dp" />
+
+        <!-- 刷新列表按钮 -->
+        <Button
             android:id="@+id/btn_refresh_apps"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="刷新列表"
+            android:layout_height="40dp"
             android:layout_weight="1"
-            android:textSize="16sp"
+            android:text="刷新列表"
+            android:textSize="14sp"
             android:textAllCaps="false"
             android:backgroundTint="#2196F3"
             android:textColor="@android:color/white"
-            android:padding="12dp"
-            android:elevation="4dp" />
+            android:elevation="1dp" />
     </LinearLayout>
+
+    <!-- 列表标题 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="可卸载应用列表"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:layout_marginTop="8dp"
+        android:elevation="2dp" />
 
     <!-- 应用列表 -->
     <androidx.recyclerview.widget.RecyclerView
@@ -67,8 +78,10 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#F5F5F5"
+        android:background="#FFFFFF"
         android:padding="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:elevation="2dp" />
 
 </LinearLayout>

@@ -342,13 +342,31 @@ public class NetworkManagerHelper {
         try {
             Log.d(TAG, "=== setHotspotConfig called with ssid: " + ssid + ", password: " + password + " ===");
             
+            boolean result;
+            boolean wasEnabled = isHotspotEnabled();
+            Log.d(TAG, "Current hotspot status: " + wasEnabled);
+            
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Log.d(TAG, "Using Android O+ API for hotspot config");
-                return setHotspotConfigOreo(ssid, password);
+                result = setHotspotConfigOreo(ssid, password);
             } else {
                 Log.d(TAG, "Using legacy API for hotspot config");
-                return setHotspotConfigLegacy(ssid, password);
+                result = setHotspotConfigLegacy(ssid, password);
             }
+            
+            // 如果热点配置成功且热点原本是开启的，需要重启热点使新配置生效
+            if (result && wasEnabled) {
+                Log.d(TAG, "Hotspot config updated successfully, restarting hotspot to apply changes");
+                // 先关闭热点
+                setHotspotEnabled(false);
+                // 短暂延迟，确保热点完全关闭
+                Thread.sleep(1000);
+                // 重新打开热点
+                setHotspotEnabled(true);
+                Log.d(TAG, "Hotspot restarted to apply new config");
+            }
+            
+            return result;
         } catch (Exception e) {
             Log.e(TAG, "Failed to set hotspot config: " + e.getMessage(), e);
             return false;
@@ -682,7 +700,27 @@ public class NetworkManagerHelper {
                                 
                                 // 保存配置
                                 Method setConfigurationMethod = mEthernetManagerClass.getMethod("setConfiguration", String.class, ipConfigClass);
-                                boolean setResult = (boolean) setConfigurationMethod.invoke(mEthernetManager, iface, config);
+                                Object result = setConfigurationMethod.invoke(mEthernetManager, iface, config);
+                                
+                                // 处理invoke返回值，避免null转换为boolean导致的空指针异常
+                                boolean setResult = false;
+                                if (result != null) {
+                                    if (result instanceof Boolean) {
+                                        setResult = (Boolean) result;
+                                    } else if (result instanceof String) {
+                                        // 有些设备可能返回字符串表示结果
+                                        setResult = "success".equalsIgnoreCase((String) result);
+                                    } else {
+                                        // 默认认为操作成功
+                                        setResult = true;
+                                        Log.w(TAG, "setConfiguration returned non-boolean result: " + result + ", assuming success");
+                                    }
+                                } else {
+                                    // 有些设备可能返回null表示成功
+                                    setResult = true;
+                                    Log.w(TAG, "setConfiguration returned null, assuming success");
+                                }
+                                
                                 Log.d(TAG, "setConfiguration for " + iface + " result: " + setResult);
                                 
                                 if (setResult) {

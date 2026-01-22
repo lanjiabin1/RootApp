@@ -194,6 +194,7 @@
             android:spacing="16dp">
 
             <Button
+                android:visibility="gone"
                 android:id="@+id/btn_wlan_settings"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
