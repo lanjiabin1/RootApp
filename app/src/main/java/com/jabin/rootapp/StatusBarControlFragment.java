@@ -63,12 +63,12 @@ public class StatusBarControlFragment extends Fragment {
     }
     
     /**
-     * 设置是否允许滑动呼出状态栏
+     * 设置是否允许滑动呼出状态栏和退出应用
      * @param allowed 是否允许
      */
     private void setStatusBarSwipeAllowed(boolean allowed) {
-        mUIControlHelper.setStatusBarSwipeAllowed(allowed);
+        mUIControlHelper.setEnhancedStatusBarSwipeAllowed(allowed);
         String behavior = mUIControlHelper.getCurrentSystemBarsBehavior();
-        Toast.makeText(getActivity(), "状态栏滑动已" + (allowed ? "允许" : "禁止") + ", 当前行为: " + behavior, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), "状态栏滑动和应用退出已" + (allowed ? "允许" : "禁止") + ", 当前行为: " + behavior, Toast.LENGTH_SHORT).show();
     }
 }
