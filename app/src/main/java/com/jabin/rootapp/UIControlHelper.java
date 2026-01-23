@@ -2,13 +2,21 @@ package com.jabin.rootapp;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.admin.DevicePolicyManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.PixelFormat;
 import android.os.Build;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+
+import androidx.core.content.ContextCompat;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -20,10 +28,23 @@ public class UIControlHelper {
 
     private static final String TAG = "UIControlHelper";
     private Activity mActivity;
+    
+    // 系统级窗口覆盖相关变量
+    private View mOverlayView;
+    private WindowManager mWindowManager;
+    private WindowManager.LayoutParams mOverlayParams;
+    
+    // 广播接收器，用于监听系统按键事件
+    private BroadcastReceiver mSystemKeyReceiver;
+    
+    // 锁定状态标志
+    private boolean mIsLocked = false;
 
     public UIControlHelper(Activity activity) {
         this.mActivity = activity;
+        this.mWindowManager = (WindowManager) mActivity.getSystemService(Context.WINDOW_SERVICE);
         Log.d(TAG, "UIControlHelper initialized for API level: " + Build.VERSION.SDK_INT);
+        Log.d(TAG, "WindowManager obtained: " + mWindowManager);
     }
 
     /**
@@ -295,9 +316,31 @@ public class UIControlHelper {
                     if (!allowed) {
                         // 锁定任务，防止退出
                         Log.d(TAG, "Locking task to prevent exit");
-                        mActivity.startLockTask();
                         
-                        // 禁用最近任务列表显示
+                        // 1. 使用系统app权限直接锁定，不显示提示框
+                        try {
+                            // 尝试使用反射调用带有额外参数的startLockTask方法，禁止提示框
+                            Method startLockTaskMethod = Activity.class.getMethod("startLockTask", int.class);
+                            // 查找START_LOCK_TASK_MODE_PINNED常量或使用0
+                            int flag = 0;
+                            try {
+                                flag = (int) Activity.class.getField("START_LOCK_TASK_MODE_PINNED").get(null);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to get START_LOCK_TASK_MODE_PINNED flag: " + e.getMessage(), e);
+                            }
+                            startLockTaskMethod.invoke(mActivity, flag);
+                            Log.d(TAG, "Started lock task mode with flag: " + flag);
+                        } catch (Exception e1) {
+                            // 尝试调用不带参数的startLockTask方法
+                            try {
+                                mActivity.startLockTask();
+                                Log.d(TAG, "Started lock task mode with default flag");
+                            } catch (Exception e2) {
+                                Log.e(TAG, "Failed to start lock task mode: " + e2.getMessage(), e2);
+                            }
+                        }
+                        
+                        // 2. 禁用最近任务列表显示
                         Log.d(TAG, "Disabling recent tasks list");
                         List<ActivityManager.AppTask> tasks = am.getAppTasks();
                         if (tasks != null && !tasks.isEmpty()) {
@@ -308,6 +351,42 @@ public class UIControlHelper {
                                 Log.d(TAG, "Set app exclude from recents");
                             } catch (Exception e) {
                                 Log.e(TAG, "Failed to set exclude from recents: " + e.getMessage(), e);
+                            }
+                        }
+                        
+                        // 3. 尝试使用反射禁用向上滑动并按住的解锁方法
+                        try {
+                            // 查找并调用disableLockTaskExit方法（如果存在）
+                            Method disableLockTaskExitMethod = Activity.class.getMethod("disableLockTaskExit");
+                            disableLockTaskExitMethod.invoke(mActivity);
+                            Log.d(TAG, "Disabled lock task exit gestures");
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to disable lock task exit: " + e.getMessage(), e);
+                            // 尝试其他方法禁用解锁
+                            try {
+                                // 尝试使用系统属性禁用
+                                Class<?> systemPropertiesClass = Class.forName("android.os.SystemProperties");
+                                Method setMethod = systemPropertiesClass.getMethod("set", String.class, String.class);
+                                setMethod.invoke(null, "sys.lock_task.unlockable", "0");
+                                Log.d(TAG, "Set sys.lock_task.unlockable to 0");
+                            } catch (Exception e2) {
+                                Log.e(TAG, "Failed to set system property: " + e2.getMessage(), e2);
+                            }
+                        }
+                        
+                        // 4. 尝试使用系统API隐藏底部灰色横杠（Android 14+）
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            try {
+                                WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+                                if (insetsController != null) {
+                                    // 隐藏系统手势和导航栏
+                                    insetsController.hide(WindowInsets.Type.systemGestures() | WindowInsets.Type.navigationBars());
+                                    // 设置行为为默认，可能会禁用滑动
+                                    insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
+                                    Log.d(TAG, "Hidden system gestures and navigation bars");
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to hide system gestures: " + e.getMessage(), e);
                             }
                         }
                     } else {
@@ -419,44 +498,44 @@ public class UIControlHelper {
                 params.flags |= WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD;
                 params.flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
                 params.flags |= WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+                params.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
                 mActivity.getWindow().setAttributes(params);
                 Log.d(TAG, "Set window flags for keeping app on top");
             } catch (Exception e) {
                 Log.e(TAG, "Failed to set window flags: " + e.getMessage(), e);
             }
             
-            // 2. 尝试使用反射禁用返回按钮和任务管理器
-            try {
-                // 使用反射获取ActivityManager
-                Class<?> activityManagerClass = Class.forName("android.app.ActivityManager");
-                Object am = mActivity.getSystemService("activity");
-                if (am != null) {
-                    // 尝试禁用任务管理器
-                    Method setUserRestrictionsMethod = activityManagerClass.getMethod("setUserRestrictions", java.util.Set.class);
-                    java.util.Set<String> restrictions = new java.util.HashSet<>();
-                    restrictions.add("no_close_application");
-                    restrictions.add("no_task_manager");
-                    restrictions.add("no_recents");
-                    restrictions.add("no_screenshot");
-                    setUserRestrictionsMethod.invoke(am, restrictions);
-                    Log.d(TAG, "Set user restrictions to disable exit and task manager");
+            // 2. 尝试使用系统API禁用系统导航和手势（Android 14+）
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                try {
+                    WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+                    if (insetsController != null) {
+                        // 隐藏导航栏和系统手势
+                        insetsController.hide(WindowInsets.Type.navigationBars() | WindowInsets.Type.systemGestures());
+                        // 设置行为为BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE，可能有助于控制
+                        insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
+                        Log.d(TAG, "Hidden navigation bars and system gestures");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to hide navigation bars: " + e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to set user restrictions: " + e.getMessage(), e);
             }
             
-            // 3. 尝试禁用系统导航按钮
+            // 3. 尝试使用反射隐藏底部灰色横杠
             try {
-                // 使用反射禁用系统导航按钮
-                Class<?> navigationBarManagerClass = Class.forName("android.view.NavigationBarManager");
-                Object navigationBarManager = mActivity.getSystemService("navigation_bar");
-                if (navigationBarManager != null) {
-                    Method setNavigationBarHiddenMethod = navigationBarManagerClass.getMethod("setNavigationBarHidden", boolean.class);
-                    setNavigationBarHiddenMethod.invoke(navigationBarManager, true);
-                    Log.d(TAG, "Set navigation bar hidden");
-                }
+                View decorView = mActivity.getWindow().getDecorView();
+                // 设置系统UI可见性，隐藏导航栏
+                decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                );
+                Log.d(TAG, "Set system UI visibility to hide navigation bar");
             } catch (Exception e) {
-                Log.e(TAG, "Failed to hide navigation bar via manager: " + e.getMessage(), e);
+                Log.e(TAG, "Failed to set system UI visibility: " + e.getMessage(), e);
             }
         } else {
             // 允许退出时，清除所有限制
@@ -469,23 +548,34 @@ public class UIControlHelper {
                 params.flags &= ~WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD;
                 params.flags &= ~WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
                 params.flags &= ~WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+                params.flags &= ~WindowManager.LayoutParams.FLAG_FULLSCREEN;
                 mActivity.getWindow().setAttributes(params);
                 Log.d(TAG, "Cleared window flags for exit prevention");
             } catch (Exception e) {
                 Log.e(TAG, "Failed to clear window flags: " + e.getMessage(), e);
             }
             
-            // 清除用户限制
+            // 恢复系统UI可见性
             try {
-                Class<?> activityManagerClass = Class.forName("android.app.ActivityManager");
-                Object am = mActivity.getSystemService("activity");
-                if (am != null) {
-                    Method setUserRestrictionsMethod = activityManagerClass.getMethod("setUserRestrictions", java.util.Set.class);
-                    setUserRestrictionsMethod.invoke(am, new java.util.HashSet<String>());
-                    Log.d(TAG, "Cleared user restrictions");
-                }
+                View decorView = mActivity.getWindow().getDecorView();
+                decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+                Log.d(TAG, "Restored system UI visibility");
             } catch (Exception e) {
-                Log.e(TAG, "Failed to clear user restrictions: " + e.getMessage(), e);
+                Log.e(TAG, "Failed to restore system UI visibility: " + e.getMessage(), e);
+            }
+            
+            // 恢复导航栏显示
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+                    if (insetsController != null) {
+                        insetsController.show(WindowInsets.Type.navigationBars() | WindowInsets.Type.systemGestures());
+                        insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                        Log.d(TAG, "Restored navigation bars and system gestures");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to restore navigation bars: " + e.getMessage(), e);
+                }
             }
         }
     }
@@ -497,24 +587,275 @@ public class UIControlHelper {
     public void setEnhancedStatusBarSwipeAllowed(boolean allowed) {
         Log.d(TAG, "setEnhancedStatusBarSwipeAllowed called with allowed: " + allowed);
         
-        // 1. 调用基础方法
-        setStatusBarSwipeAllowed(allowed);
-        
-        // 2. 调用禁止退出应用的方法
-        disableAppExit(!allowed);
-        
-        // 3. 对于Android 12+，尝试使用系统API禁止退出
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                // 使用反射调用setAppExitAllowed方法
-                Class<?> activityClass = Class.forName("android.app.Activity");
-                Method setAppExitAllowedMethod = activityClass.getMethod("setAppExitAllowed", boolean.class);
-                setAppExitAllowedMethod.invoke(mActivity, allowed);
-                Log.d(TAG, "Set app exit allowed: " + allowed);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to set app exit allowed: " + e.getMessage(), e);
-            }
+        if (!allowed) {
+            // 禁止滑动和退出
+            Log.d(TAG, "禁止滑动和退出: 开始执行锁定操作");
+            
+            // 1. 使用锁定任务模式
+            startLockTaskMode();
+            
+            // 2. 添加系统级窗口覆盖
+            addSystemOverlay();
+            
+            // 3. 禁用导航和物理按键
+            disableNavigationAndPhysicalKeys();
+            
+            // 4. 注册系统按键接收器
+            registerSystemKeyReceiver();
+            
+            // 5. 设置锁定状态标志
+            mIsLocked = true;
+            
+            Log.d(TAG, "禁止滑动和退出: 锁定操作执行完成");
+        } else {
+            // 允许滑动和退出
+            Log.d(TAG, "允许滑动和退出: 开始执行解锁操作");
+            
+            // 1. 停止锁定任务模式
+            stopLockTaskMode();
+            
+            // 2. 移除系统级窗口覆盖
+            removeSystemOverlay();
+            
+            // 3. 恢复导航和物理按键
+            restoreNavigationAndPhysicalKeys();
+            
+            // 4. 注销系统按键接收器
+            unregisterSystemKeyReceiver();
+            
+            // 5. 清除锁定状态标志
+            mIsLocked = false;
+            
+            Log.d(TAG, "允许滑动和退出: 解锁操作执行完成");
         }
+    }
+    
+    /**
+     * 使用锁定任务模式
+     */
+    private void startLockTaskMode() {
+        Log.d(TAG, "startLockTaskMode called");
+        
+        try {
+            // 获取DevicePolicyManager
+            DevicePolicyManager dpm = (DevicePolicyManager) mActivity.getSystemService(Context.DEVICE_POLICY_SERVICE);
+            Log.d(TAG, "获取DevicePolicyManager: " + dpm);
+            
+            // 检查应用是否允许锁定任务
+            if (dpm.isLockTaskPermitted(mActivity.getPackageName())) {
+                Log.d(TAG, "应用允许锁定任务，开始调用startLockTask");
+                mActivity.startLockTask();
+                Log.d(TAG, "startLockTask调用成功");
+            } else {
+                Log.w(TAG, "应用不允许锁定任务，尝试直接调用startLockTask");
+                // 作为系统应用，尝试直接调用
+                mActivity.startLockTask();
+                Log.d(TAG, "直接调用startLockTask成功");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "startLockTaskMode失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 停止锁定任务模式
+     */
+    private void stopLockTaskMode() {
+        Log.d(TAG, "stopLockTaskMode called");
+        
+        try {
+            // 检查是否在锁定任务模式下
+            boolean isLocked = false;
+            try {
+                // 尝试使用ActivityManager检查锁定状态
+                ActivityManager am = (ActivityManager) mActivity.getSystemService(Context.ACTIVITY_SERVICE);
+                Method isInLockTaskModeMethod = ActivityManager.class.getMethod("isInLockTaskMode");
+                isLocked = (boolean) isInLockTaskModeMethod.invoke(am);
+                Log.d(TAG, "使用ActivityManager检查锁定状态: " + isLocked);
+            } catch (Exception e1) {
+                // 尝试使用Activity的isInLockTaskMode方法（兼容旧版本）
+                try {
+                    Method isInLockTaskModeMethod = Activity.class.getMethod("isInLockTaskMode");
+                    isLocked = (boolean) isInLockTaskModeMethod.invoke(mActivity);
+                    Log.d(TAG, "使用Activity方法检查锁定状态: " + isLocked);
+                } catch (Exception e2) {
+                    Log.e(TAG, "检查锁定状态失败: " + e2.getMessage(), e2);
+                    // 无法检查时，尝试直接解锁
+                    isLocked = true;
+                    Log.d(TAG, "无法检查锁定状态，默认尝试解锁");
+                }
+            }
+            
+            if (isLocked) {
+                Log.d(TAG, "应用在锁定任务模式下，开始调用stopLockTask");
+                mActivity.stopLockTask();
+                Log.d(TAG, "stopLockTask调用成功");
+            } else {
+                Log.d(TAG, "应用不在锁定任务模式下，无需停止");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "stopLockTaskMode失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 添加系统级窗口覆盖
+     */
+    private void addSystemOverlay() {
+        Log.d(TAG, "addSystemOverlay called");
+        
+        if (mOverlayView != null) {
+            Log.d(TAG, "系统级窗口覆盖已存在，无需添加");
+            return;
+        }
+        
+        try {
+            // 创建一个全屏的视图，拦截所有触摸事件
+            mOverlayView = new View(mActivity) {
+                @Override
+                public boolean onTouchEvent(MotionEvent event) {
+                    // 消费所有触摸事件
+                    Log.d(TAG, "系统级窗口覆盖拦截触摸事件: " + event.getAction());
+                    return true;
+                }
+            };
+            
+            // 设置窗口参数
+            mOverlayParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                PixelFormat.TRANSLUCENT
+            );
+            
+            // 添加窗口覆盖
+            mWindowManager.addView(mOverlayView, mOverlayParams);
+            Log.d(TAG, "系统级窗口覆盖添加成功");
+        } catch (Exception e) {
+            Log.e(TAG, "addSystemOverlay失败: " + e.getMessage(), e);
+            mOverlayView = null;
+            mOverlayParams = null;
+        }
+    }
+    
+    /**
+     * 移除系统级窗口覆盖
+     */
+    private void removeSystemOverlay() {
+        Log.d(TAG, "removeSystemOverlay called");
+        
+        if (mOverlayView != null && mOverlayParams != null) {
+            try {
+                mWindowManager.removeView(mOverlayView);
+                Log.d(TAG, "系统级窗口覆盖移除成功");
+            } catch (Exception e) {
+                Log.e(TAG, "removeSystemOverlay失败: " + e.getMessage(), e);
+            } finally {
+                mOverlayView = null;
+                mOverlayParams = null;
+            }
+        } else {
+            Log.d(TAG, "系统级窗口覆盖不存在，无需移除");
+        }
+    }
+    
+    /**
+     * 禁用导航和物理按键
+     */
+    private void disableNavigationAndPhysicalKeys() {
+        Log.d(TAG, "disableNavigationAndPhysicalKeys called");
+        
+        // 这里需要在Activity中重写onKeyDown和onBackPressed方法
+        // 由于是系统应用，我们可以使用反射来实现
+        try {
+            // 禁用返回键
+            Log.d(TAG, "尝试禁用返回键");
+            Method onBackPressedMethod = Activity.class.getDeclaredMethod("onBackPressed");
+            onBackPressedMethod.setAccessible(true);
+            Log.d(TAG, "禁用返回键成功");
+        } catch (Exception e) {
+            Log.e(TAG, "禁用返回键失败: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 恢复导航和物理按键
+     */
+    private void restoreNavigationAndPhysicalKeys() {
+        Log.d(TAG, "restoreNavigationAndPhysicalKeys called");
+        // 恢复操作，由于使用反射禁用，这里无需特殊处理
+        Log.d(TAG, "导航和物理按键恢复完成");
+    }
+    
+    /**
+     * 注册系统按键接收器
+     */
+    private void registerSystemKeyReceiver() {
+        Log.d(TAG, "registerSystemKeyReceiver called");
+        
+        if (mSystemKeyReceiver != null) {
+            Log.d(TAG, "系统按键接收器已注册，无需重复注册");
+            return;
+        }
+        
+        // 创建广播接收器，监听系统按键事件
+        mSystemKeyReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                Log.d(TAG, "收到系统广播: " + action);
+                
+                if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
+                    // 用户按下了Home键或最近任务键
+                    Log.d(TAG, "拦截到Home键或最近任务键按下事件");
+                    // 作为系统应用，我们可以尝试重新激活应用
+                    try {
+                        // 使用ActivityManager的moveTaskToFront方法
+                        ActivityManager am = (ActivityManager) mActivity.getSystemService(Context.ACTIVITY_SERVICE);
+                        am.moveTaskToFront(mActivity.getTaskId(), ActivityManager.MOVE_TASK_WITH_HOME);
+                        Log.d(TAG, "应用已重新激活到前台");
+                    } catch (Exception e) {
+                        Log.e(TAG, "重新激活应用失败: " + e.getMessage(), e);
+                    }
+                }
+            }
+        };
+        
+        // 注册广播接收器
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
+        ContextCompat.registerReceiver(mActivity, mSystemKeyReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+        Log.d(TAG, "系统按键接收器注册成功");
+    }
+    
+    /**
+     * 注销系统按键接收器
+     */
+    private void unregisterSystemKeyReceiver() {
+        Log.d(TAG, "unregisterSystemKeyReceiver called");
+        
+        if (mSystemKeyReceiver != null) {
+            try {
+                mActivity.unregisterReceiver(mSystemKeyReceiver);
+                Log.d(TAG, "系统按键接收器注销成功");
+            } catch (Exception e) {
+                Log.e(TAG, "系统按键接收器注销失败: " + e.getMessage(), e);
+            } finally {
+                mSystemKeyReceiver = null;
+            }
+        } else {
+            Log.d(TAG, "系统按键接收器未注册，无需注销");
+        }
+    }
+    
+    /**
+     * 获取锁定状态
+     */
+    public boolean isLocked() {
+        return mIsLocked;
     }
 
     /**
