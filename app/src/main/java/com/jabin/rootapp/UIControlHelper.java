@@ -591,16 +591,24 @@ public class UIControlHelper {
             // 禁止系统导航栏显示
             Log.d(TAG, "禁止系统导航栏显示: 开始执行操作");
             
-            // 1. 直接隐藏系统栏并禁止滑动
+            // 1. 设置窗口标志，确保全屏和沉浸式模式
+            WindowManager.LayoutParams params = mActivity.getWindow().getAttributes();
+            params.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
+            params.flags |= WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+            params.flags |= WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+            mActivity.getWindow().setAttributes(params);
+            Log.d(TAG, "已设置窗口标志，进入全屏模式");
+            
+            // 2. 直接隐藏系统栏并禁止滑动，使用更严格的行为设置
             Log.d(TAG, "开始隐藏系统栏并禁止滑动");
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
                 if (insetsController != null) {
-                    // 隐藏系统栏
-                    insetsController.hide(WindowInsets.Type.systemBars());
+                    // 隐藏所有可能的系统栏类型
+                    insetsController.hide(WindowInsets.Type.systemBars() | WindowInsets.Type.navigationBars() | WindowInsets.Type.statusBars() | WindowInsets.Type.systemGestures());
                     // 设置行为为默认，禁止滑动显示
                     insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
-                    Log.d(TAG, "已使用WindowInsetsController隐藏系统栏并禁止滑动");
+                    Log.d(TAG, "已使用WindowInsetsController隐藏所有系统栏并禁止滑动");
                 } else {
                     Log.e(TAG, "WindowInsetsController为null");
                 }
@@ -614,19 +622,35 @@ public class UIControlHelper {
                 Log.d(TAG, "已使用SYSTEM_UI_FLAG隐藏系统栏并禁止滑动");
             }
             
-            // 2. 使用锁定任务模式（暂时注释，已启用桌面模式）
+            // 3. 为了防止系统自动恢复，添加一个延迟检查任务
+            mActivity.getWindow().getDecorView().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(TAG, "延迟检查系统栏状态，确保仍处于隐藏状态");
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+                        if (insetsController != null) {
+                            // 再次隐藏系统栏，确保系统没有自动恢复
+                            insetsController.hide(WindowInsets.Type.systemBars() | WindowInsets.Type.navigationBars() | WindowInsets.Type.statusBars() | WindowInsets.Type.systemGestures());
+                            Log.d(TAG, "延迟检查：已重新隐藏系统栏");
+                        }
+                    }
+                }
+            }, 500);
+            
+            // 4. 使用锁定任务模式（暂时注释，已启用桌面模式）
             // startLockTaskMode();
             
-            // 3. 添加系统级窗口覆盖
+            // 5. 添加系统级窗口覆盖
             addSystemOverlay();
             
-            // 4. 禁用导航和物理按键
+            // 6. 禁用导航和物理按键
             disableNavigationAndPhysicalKeys();
             
-            // 5. 注册系统按键接收器
+            // 7. 注册系统按键接收器
             registerSystemKeyReceiver();
             
-            // 6. 设置锁定状态标志
+            // 8. 设置锁定状态标志
             mIsLocked = true;
             
             Log.d(TAG, "禁止系统导航栏显示: 操作执行完成");
@@ -634,16 +658,24 @@ public class UIControlHelper {
             // 允许系统导航栏显示
             Log.d(TAG, "允许系统导航栏显示: 开始执行操作");
             
-            // 1. 直接显示系统栏并允许滑动
+            // 1. 清除窗口标志
+            WindowManager.LayoutParams params = mActivity.getWindow().getAttributes();
+            params.flags &= ~WindowManager.LayoutParams.FLAG_FULLSCREEN;
+            params.flags &= ~WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+            params.flags &= ~WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+            mActivity.getWindow().setAttributes(params);
+            Log.d(TAG, "已清除窗口标志，退出全屏模式");
+            
+            // 2. 直接显示系统栏并允许滑动
             Log.d(TAG, "开始显示系统栏并允许滑动");
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
                 if (insetsController != null) {
-                    // 显示系统栏
-                    insetsController.show(WindowInsets.Type.systemBars());
+                    // 显示所有系统栏类型
+                    insetsController.show(WindowInsets.Type.systemBars() | WindowInsets.Type.navigationBars() | WindowInsets.Type.statusBars());
                     // 设置行为为允许滑动显示
                     insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                    Log.d(TAG, "已使用WindowInsetsController显示系统栏并允许滑动");
+                    Log.d(TAG, "已使用WindowInsetsController显示所有系统栏并允许滑动");
                 } else {
                     Log.e(TAG, "WindowInsetsController为null");
                 }
@@ -655,19 +687,19 @@ public class UIControlHelper {
                 Log.d(TAG, "已使用SYSTEM_UI_FLAG显示系统栏并允许滑动");
             }
             
-            // 2. 停止锁定任务模式（暂时注释，已启用桌面模式）
+            // 3. 停止锁定任务模式（暂时注释，已启用桌面模式）
             // stopLockTaskMode();
             
-            // 3. 移除系统级窗口覆盖
+            // 4. 移除系统级窗口覆盖
             removeSystemOverlay();
             
-            // 4. 恢复导航和物理按键
+            // 5. 恢复导航和物理按键
             restoreNavigationAndPhysicalKeys();
             
-            // 5. 注销系统按键接收器
+            // 6. 注销系统按键接收器
             unregisterSystemKeyReceiver();
             
-            // 6. 清除锁定状态标志
+            // 7. 清除锁定状态标志
             mIsLocked = false;
             
             Log.d(TAG, "允许系统导航栏显示: 操作执行完成");

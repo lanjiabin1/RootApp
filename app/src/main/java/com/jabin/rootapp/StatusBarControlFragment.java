@@ -19,6 +19,7 @@ public class StatusBarControlFragment extends Fragment {
     private UIControlHelper mUIControlHelper;
     private Switch swSystemNavigation;
     private TextView tvStatusBarControl;
+    private boolean mIsNavigationAllowed;
 
     public StatusBarControlFragment() {
         // Required empty public constructor
@@ -38,17 +39,26 @@ public class StatusBarControlFragment extends Fragment {
         tvStatusBarControl = view.findViewById(R.id.tv_status_bar_control);
         
         // 设置初始状态：默认禁止系统导航栏显示
-        boolean isAllowed = false;
-        swSystemNavigation.setChecked(isAllowed);
-        updateSystemNavigationStatus(isAllowed);
+        mIsNavigationAllowed = false;
+        swSystemNavigation.setChecked(mIsNavigationAllowed);
+        updateSystemNavigationStatus(mIsNavigationAllowed);
         
         // 设置点击事件
         swSystemNavigation.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            mIsNavigationAllowed = isChecked;
             setSystemNavigationAllowed(isChecked);
             updateSystemNavigationStatus(isChecked);
         });
         
         return view;
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 确保系统栏状态与当前设置一致，防止系统自动恢复
+        Log.d("StatusBarControlFragment", "onResume，恢复系统导航栏状态: " + (mIsNavigationAllowed ? "允许" : "禁止"));
+        mUIControlHelper.setEnhancedStatusBarSwipeAllowed(mIsNavigationAllowed);
     }
     
     /**
