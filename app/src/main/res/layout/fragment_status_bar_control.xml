@@ -10,66 +10,52 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="状态栏控制"
+        android:text="系统导航栏控制"
         android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
         android:layout_marginBottom="24dp"
         android:textColor="#3F51B5" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="24dp"
-        android:spacing="16dp">
-
-        <Button
-            android:id="@+id/btn_hide_system_bars"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="隐藏导航栏/状态栏"
-            android:textSize="14sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#9C27B0"
-            android:textColor="@android:color/white"
-            android:elevation="4dp" />
-
-        <Button
-            android:layout_marginLeft="10dp"
-            android:id="@+id/btn_show_system_bars"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="显示导航栏/状态栏"
-            android:textSize="14sp"
-            android:textAllCaps="false"
-            android:backgroundTint="#673AB7"
-            android:textColor="@android:color/white"
-            android:elevation="4dp" />
-    </LinearLayout>
-
+    <!-- 系统导航栏显示控制 Switch -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="24dp"
+        android:background="#F5F5F5"
+        android:padding="20dp">
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="允许滑动呼出状态栏"
-            android:textSize="16sp" />
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="允许系统导航栏显示"
+                android:textSize="18sp"
+                android:textColor="#333333"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tv_status_bar_control"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="当前状态：允许系统导航栏显示，可通过顶部下滑呼出"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
 
         <Switch
-            android:id="@+id/sw_status_bar_swipe"
+            android:id="@+id/sw_system_navigation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:checked="true" />
+            android:checked="true"
+            android:thumbTint="#3F51B5"
+            android:trackTint="#E0E0E0" />
     </LinearLayout>
 
     <View
@@ -81,30 +67,43 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="注意事项："
-        android:textSize="16sp"
+        android:text="功能说明："
+        android:textSize="18sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="12dp" />
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="1. 隐藏系统栏后，通过滑动边缘可以临时显示。\n"
-        android:textSize="14sp"
-        android:textColor="#666666" />
+        android:orientation="vertical"
+        android:background="#F9F9F9"
+        android:padding="16dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="2. 禁止滑动呼出状态栏后，只能通过按钮恢复显示。\n"
-        android:textSize="14sp"
-        android:textColor="#666666" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="允许系统导航栏显示："
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="3. 部分设备可能不支持某些功能。"
-        android:textSize="14sp"
-        android:textColor="#666666" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="  - 开启：允许系统导航栏显示，可通过顶部下滑呼出"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="4dp"
+            android:layout_marginLeft="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="  - 关闭：系统导航栏将被隐藏，无法通过任何方式呼出"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:layout_marginLeft="16dp" />
+    </LinearLayout>
 
 </LinearLayout>

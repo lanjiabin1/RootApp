@@ -12,7 +12,9 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -80,6 +82,11 @@ public class MainActivity extends AppCompatActivity {
         
         // 初始化底部导航栏
         initBottomNavigation();
+        
+        // app启动时默认禁止系统导航栏显示
+        Log.d(TAG, "App启动，开始禁止系统导航栏显示");
+        mUIControlHelper.setEnhancedStatusBarSwipeAllowed(false);
+        Log.d(TAG, "App启动，禁止系统导航栏显示完成");
     }
 
     /**

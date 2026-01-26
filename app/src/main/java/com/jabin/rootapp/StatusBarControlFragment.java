@@ -1,11 +1,12 @@
 package com.jabin.rootapp;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
@@ -16,9 +17,8 @@ import androidx.fragment.app.Fragment;
 public class StatusBarControlFragment extends Fragment {
 
     private UIControlHelper mUIControlHelper;
-    private Button btnHideSystemBars;
-    private Button btnShowSystemBars;
-    private Switch swStatusBarSwipe;
+    private Switch swSystemNavigation;
+    private TextView tvStatusBarControl;
 
     public StatusBarControlFragment() {
         // Required empty public constructor
@@ -34,41 +34,43 @@ public class StatusBarControlFragment extends Fragment {
         mUIControlHelper = new UIControlHelper(getActivity());
         
         // 初始化UI组件
-        btnHideSystemBars = view.findViewById(R.id.btn_hide_system_bars);
-        btnShowSystemBars = view.findViewById(R.id.btn_show_system_bars);
-        swStatusBarSwipe = view.findViewById(R.id.sw_status_bar_swipe);
+        swSystemNavigation = view.findViewById(R.id.sw_system_navigation);
+        tvStatusBarControl = view.findViewById(R.id.tv_status_bar_control);
+        
+        // 设置初始状态：默认禁止系统导航栏显示
+        boolean isAllowed = false;
+        swSystemNavigation.setChecked(isAllowed);
+        updateSystemNavigationStatus(isAllowed);
         
         // 设置点击事件
-        btnHideSystemBars.setOnClickListener(v -> hideSystemBars());
-        btnShowSystemBars.setOnClickListener(v -> showSystemBars());
-        swStatusBarSwipe.setOnCheckedChangeListener((buttonView, isChecked) -> setStatusBarSwipeAllowed(isChecked));
+        swSystemNavigation.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            setSystemNavigationAllowed(isChecked);
+            updateSystemNavigationStatus(isChecked);
+        });
         
         return view;
     }
     
     /**
-     * 隐藏导航栏和状态栏
-     */
-    private void hideSystemBars() {
-        mUIControlHelper.hideSystemBars();
-        Toast.makeText(getActivity(), "已隐藏导航栏和状态栏", Toast.LENGTH_SHORT).show();
-    }
-    
-    /**
-     * 显示导航栏和状态栏
-     */
-    private void showSystemBars() {
-        mUIControlHelper.showSystemBars();
-        Toast.makeText(getActivity(), "已显示导航栏和状态栏", Toast.LENGTH_SHORT).show();
-    }
-    
-    /**
-     * 设置是否允许滑动呼出状态栏和退出应用
+     * 设置是否允许系统导航栏显示
      * @param allowed 是否允许
      */
-    private void setStatusBarSwipeAllowed(boolean allowed) {
+    private void setSystemNavigationAllowed(boolean allowed) {
+        Log.d("StatusBarControlFragment", "设置系统导航栏显示状态: " + (allowed ? "允许" : "禁止"));
         mUIControlHelper.setEnhancedStatusBarSwipeAllowed(allowed);
-        String behavior = mUIControlHelper.getCurrentSystemBarsBehavior();
-        Toast.makeText(getActivity(), "状态栏滑动和应用退出已" + (allowed ? "允许" : "禁止") + ", 当前行为: " + behavior, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), "系统导航栏显示已" + (allowed ? "允许" : "禁止"), Toast.LENGTH_SHORT).show();
     }
+    
+    /**
+     * 更新系统导航栏显示状态文本
+     * @param isAllowed 是否允许
+     */
+    private void updateSystemNavigationStatus(boolean isAllowed) {
+        if (isAllowed) {
+            tvStatusBarControl.setText("当前状态：允许系统导航栏显示，可通过顶部下滑呼出");
+        } else {
+            tvStatusBarControl.setText("当前状态：系统导航栏已隐藏，无法呼出");
+        }
+    }
+
 }

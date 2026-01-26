@@ -14,7 +14,7 @@ android {
         targetSdk 36
         versionCode 1
         // 加上格式化后的时间戳
-        versionName "1.1.2" + new Date().format("yyyyMMddHHmmss")
+        versionName "1.1.4" + "_"+new Date().format("yyyy/MM/dd HH:mm:ss")
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

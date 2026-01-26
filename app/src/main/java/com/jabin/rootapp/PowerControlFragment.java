@@ -1,6 +1,8 @@
 package com.jabin.rootapp;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +18,7 @@ public class PowerControlFragment extends Fragment {
     private Button btnShutdown;
     private Button btnReboot;
     private Button btnFactoryReset;
+    private Button btnOpenSettings;
     private PowerManagerHelper mPowerManager;
 
     public PowerControlFragment() {
@@ -35,12 +38,22 @@ public class PowerControlFragment extends Fragment {
         btnShutdown = view.findViewById(R.id.btn_shutdown);
         btnReboot = view.findViewById(R.id.btn_reboot);
         btnFactoryReset = view.findViewById(R.id.btn_factory_reset);
+        btnOpenSettings = view.findViewById(R.id.btn_open_settings);
         
         // 设置点击事件
         btnShutdown.setOnClickListener(v -> ((MainActivity) getActivity()).shutdown());
         btnReboot.setOnClickListener(v -> ((MainActivity) getActivity()).reboot());
         btnFactoryReset.setOnClickListener(v -> ((MainActivity) getActivity()).factoryReset());
+        btnOpenSettings.setOnClickListener(v -> openSystemSettings());
         
         return view;
+    }
+    
+    /**
+     * 打开系统设置
+     */
+    private void openSystemSettings() {
+        Intent intent = new Intent(Settings.ACTION_SETTINGS);
+        startActivity(intent);
     }
 }

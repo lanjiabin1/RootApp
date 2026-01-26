@@ -581,52 +581,96 @@ public class UIControlHelper {
     }
     
     /**
-     * 增强版禁止滑动呼出状态栏和退出应用
-     * @param allowed 是否允许
+     * 控制系统导航栏显示
+     * @param allowed 是否允许显示
      */
     public void setEnhancedStatusBarSwipeAllowed(boolean allowed) {
         Log.d(TAG, "setEnhancedStatusBarSwipeAllowed called with allowed: " + allowed);
         
         if (!allowed) {
-            // 禁止滑动和退出
-            Log.d(TAG, "禁止滑动和退出: 开始执行锁定操作");
+            // 禁止系统导航栏显示
+            Log.d(TAG, "禁止系统导航栏显示: 开始执行操作");
             
-            // 1. 使用锁定任务模式
-            startLockTaskMode();
+            // 1. 直接隐藏系统栏并禁止滑动
+            Log.d(TAG, "开始隐藏系统栏并禁止滑动");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+                if (insetsController != null) {
+                    // 隐藏系统栏
+                    insetsController.hide(WindowInsets.Type.systemBars());
+                    // 设置行为为默认，禁止滑动显示
+                    insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
+                    Log.d(TAG, "已使用WindowInsetsController隐藏系统栏并禁止滑动");
+                } else {
+                    Log.e(TAG, "WindowInsetsController为null");
+                }
+            } else {
+                // Android 11以下版本使用SYSTEM_UI_FLAG
+                View decorView = mActivity.getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE;
+                decorView.setSystemUiVisibility(uiOptions);
+                Log.d(TAG, "已使用SYSTEM_UI_FLAG隐藏系统栏并禁止滑动");
+            }
             
-            // 2. 添加系统级窗口覆盖
+            // 2. 使用锁定任务模式（暂时注释，已启用桌面模式）
+            // startLockTaskMode();
+            
+            // 3. 添加系统级窗口覆盖
             addSystemOverlay();
             
-            // 3. 禁用导航和物理按键
+            // 4. 禁用导航和物理按键
             disableNavigationAndPhysicalKeys();
             
-            // 4. 注册系统按键接收器
+            // 5. 注册系统按键接收器
             registerSystemKeyReceiver();
             
-            // 5. 设置锁定状态标志
+            // 6. 设置锁定状态标志
             mIsLocked = true;
             
-            Log.d(TAG, "禁止滑动和退出: 锁定操作执行完成");
+            Log.d(TAG, "禁止系统导航栏显示: 操作执行完成");
         } else {
-            // 允许滑动和退出
-            Log.d(TAG, "允许滑动和退出: 开始执行解锁操作");
+            // 允许系统导航栏显示
+            Log.d(TAG, "允许系统导航栏显示: 开始执行操作");
             
-            // 1. 停止锁定任务模式
-            stopLockTaskMode();
+            // 1. 直接显示系统栏并允许滑动
+            Log.d(TAG, "开始显示系统栏并允许滑动");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+                if (insetsController != null) {
+                    // 显示系统栏
+                    insetsController.show(WindowInsets.Type.systemBars());
+                    // 设置行为为允许滑动显示
+                    insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                    Log.d(TAG, "已使用WindowInsetsController显示系统栏并允许滑动");
+                } else {
+                    Log.e(TAG, "WindowInsetsController为null");
+                }
+            } else {
+                // Android 11以下版本使用SYSTEM_UI_FLAG
+                View decorView = mActivity.getWindow().getDecorView();
+                int uiOptions = View.SYSTEM_UI_FLAG_VISIBLE;
+                decorView.setSystemUiVisibility(uiOptions);
+                Log.d(TAG, "已使用SYSTEM_UI_FLAG显示系统栏并允许滑动");
+            }
             
-            // 2. 移除系统级窗口覆盖
+            // 2. 停止锁定任务模式（暂时注释，已启用桌面模式）
+            // stopLockTaskMode();
+            
+            // 3. 移除系统级窗口覆盖
             removeSystemOverlay();
             
-            // 3. 恢复导航和物理按键
+            // 4. 恢复导航和物理按键
             restoreNavigationAndPhysicalKeys();
             
-            // 4. 注销系统按键接收器
+            // 5. 注销系统按键接收器
             unregisterSystemKeyReceiver();
             
-            // 5. 清除锁定状态标志
+            // 6. 清除锁定状态标志
             mIsLocked = false;
             
-            Log.d(TAG, "允许滑动和退出: 解锁操作执行完成");
+            Log.d(TAG, "允许系统导航栏显示: 操作执行完成");
         }
     }
     
@@ -809,17 +853,8 @@ public class UIControlHelper {
                 Log.d(TAG, "收到系统广播: " + action);
                 
                 if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
-                    // 用户按下了Home键或最近任务键
-                    Log.d(TAG, "拦截到Home键或最近任务键按下事件");
-                    // 作为系统应用，我们可以尝试重新激活应用
-                    try {
-                        // 使用ActivityManager的moveTaskToFront方法
-                        ActivityManager am = (ActivityManager) mActivity.getSystemService(Context.ACTIVITY_SERVICE);
-                        am.moveTaskToFront(mActivity.getTaskId(), ActivityManager.MOVE_TASK_WITH_HOME);
-                        Log.d(TAG, "应用已重新激活到前台");
-                    } catch (Exception e) {
-                        Log.e(TAG, "重新激活应用失败: " + e.getMessage(), e);
-                    }
+                    // 用户按下了Home键或最近任务键，只打印日志不做其他操作
+                    Log.d(TAG, "拦截到Home键或最近任务键按下事件，仅记录日志");
                 }
             }
         };
@@ -858,6 +893,56 @@ public class UIControlHelper {
         return mIsLocked;
     }
 
+    /**
+     * 禁止上下滑动拉出系统导航栏
+     */
+    public void disableStatusBarSwipe() {
+        Log.d(TAG, "disableStatusBarSwipe called");
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+            if (insetsController != null) {
+                // 隐藏系统栏
+                insetsController.hide(WindowInsets.Type.systemBars());
+                // 设置行为为默认，禁止滑动显示
+                insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
+                Log.d(TAG, "已禁用上下滑动拉出系统导航栏");
+            }
+        } else {
+            // Android 11以下版本使用SYSTEM_UI_FLAG
+            View decorView = mActivity.getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE;
+            decorView.setSystemUiVisibility(uiOptions);
+            Log.d(TAG, "已使用SYSTEM_UI_FLAG禁用上下滑动拉出系统导航栏");
+        }
+    }
+    
+    /**
+     * 允许上下滑动拉出系统导航栏
+     */
+    public void enableStatusBarSwipe() {
+        Log.d(TAG, "enableStatusBarSwipe called");
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController insetsController = mActivity.getWindow().getInsetsController();
+            if (insetsController != null) {
+                // 显示系统栏
+                insetsController.show(WindowInsets.Type.systemBars());
+                // 设置行为为允许滑动显示
+                insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                Log.d(TAG, "已允许上下滑动拉出系统导航栏");
+            }
+        } else {
+            // Android 11以下版本使用SYSTEM_UI_FLAG
+            View decorView = mActivity.getWindow().getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_VISIBLE;
+            decorView.setSystemUiVisibility(uiOptions);
+            Log.d(TAG, "已使用SYSTEM_UI_FLAG允许上下滑动拉出系统导航栏");
+        }
+    }
+    
     /**
      * 获取当前系统栏行为
      * @return 当前行为描述
